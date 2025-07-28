@@ -43,7 +43,7 @@
 
 .card-section {
   margin-bottom: 0;
-  padding: 0.5rem 1rem 0 1rem;
+  padding: 0.2rem 0.4rem 0 0.4rem;
 }
 
 .performer-tag-container,
@@ -106,11 +106,11 @@
 
 .scene-header {
   flex-basis: auto;
-  font-size: 1.5rem;
-  margin-top: 30px;
+  font-size: 1.2rem;
+  margin-top: 20px;
 
   @include media-breakpoint-down(xl) {
-    font-size: 1.75rem;
+    font-size: 1.4rem;
   }
 }
 
@@ -233,6 +233,7 @@ textarea.scene-description {
 .scene-card {
   &-preview {
     aspect-ratio: 16/9;
+    margin-bottom: 2px;
   }
 
   .scene-group-scene-number {
@@ -250,7 +251,7 @@ textarea.scene-description {
   &-preview {
     display: flex;
     justify-content: center;
-    margin-bottom: 5px;
+    margin-bottom: 1px;
     position: relative;
 
     &-image,

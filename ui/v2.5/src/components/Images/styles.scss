@@ -18,11 +18,11 @@
 
 .image-header {
   flex-basis: auto;
-  font-size: 1.5rem;
-  margin-top: 30px;
+  font-size: 1.2rem;
+  margin-top: 20px;
 
   @include media-breakpoint-down(xl) {
-    font-size: 1.75rem;
+    font-size: 1.4rem;
   }
 }
 
@@ -73,6 +73,7 @@
 
 .image-card {
   &.card {
+    margin-bottom: 0.5rem;
     overflow: hidden;
     padding: 0;
 
@@ -89,7 +90,7 @@
     align-items: center;
     display: flex;
     justify-content: center;
-    margin-bottom: 5px;
+    margin-bottom: 2px;
     position: relative;
 
     &-image {

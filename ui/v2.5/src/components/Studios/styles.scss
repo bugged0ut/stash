@@ -7,6 +7,26 @@
 }
 
 .studio-card {
+  &.card {
+    margin-bottom: 0.5rem;
+    padding: 0;
+  }
+  
+  .card-section {
+    margin-bottom: 0;
+    padding: 0.2rem 0.4rem;
+  }
+  
+  .card-section-title {
+    font-size: 0.9rem;
+    line-height: 1.2;
+    margin-bottom: 0.2rem;
+  }
+  
+  .thumbnail-section {
+    margin-bottom: 0;
+  }
+
   button.btn.favorite-button {
     padding: 0;
     position: absolute;

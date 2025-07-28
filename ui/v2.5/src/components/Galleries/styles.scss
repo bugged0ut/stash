@@ -26,11 +26,11 @@
 
 .gallery-header {
   flex-basis: auto;
-  font-size: 1.5rem;
-  margin-top: 30px;
+  font-size: 1.2rem;
+  margin-top: 20px;
 
   @include media-breakpoint-down(xl) {
-    font-size: 1.75rem;
+    font-size: 1.4rem;
   }
 }
 
@@ -77,9 +77,10 @@
 
 .gallery-card {
   &.card {
+    margin-bottom: 0.5rem;
     overflow: hidden;
     padding: 0;
-    padding-bottom: 1rem;
+    padding-bottom: 0.5rem;
 
     @media (max-width: 576px) {
       width: 100%;
@@ -87,7 +88,9 @@
   }
 
   .card-section {
+    margin-bottom: 0;
     margin-top: auto;
+    padding: 0.2rem 0.4rem;
 
     a:hover {
       text-decoration: none;
@@ -100,6 +103,9 @@
 
   .card-section-title {
     color: $text-color;
+    font-size: 0.9rem;
+    line-height: 1.2;
+    margin-bottom: 0.2rem;
   }
 
   &-cover {
