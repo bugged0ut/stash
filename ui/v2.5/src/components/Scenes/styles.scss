@@ -2,7 +2,6 @@
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  margin-bottom: 10px;
 
   .btn {
     padding-bottom: 3px;
@@ -21,8 +20,20 @@
   margin-bottom: 0.1rem;
 
   svg {
-    padding-top: 0.1rem;
     display: inline-block;
+    padding-top: 0.1rem;
+  }
+}
+
+.performer-list {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  margin-bottom: 0.1rem;
+
+  svg {
+    display: inline-block;
+    padding-top: 0.1rem;
   }
 }
 
