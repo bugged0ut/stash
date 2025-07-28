@@ -15,17 +15,39 @@ export const useScrollRestoration = () => {
   const scrollPositions = useRef<IScrollPositions>({});
   const isBackNavigation = useRef(false);
   
-  // Save scroll position before route changes
+  // Save scroll position continuously
+  useEffect(() => {
+    // Save scroll position periodically while on the page
+    const saveScrollPosition = () => {
+      if (key) {
+        scrollPositions.current[key] = window.scrollY;
+      }
+    };
+    
+    // Save position on scroll events
+    window.addEventListener("scroll", saveScrollPosition, { passive: true });
+    
+    // Also save position periodically (as backup)
+    const intervalId = setInterval(saveScrollPosition, 1000);
+    
+    return () => {
+      window.removeEventListener("scroll", saveScrollPosition);
+      clearInterval(intervalId);
+      saveScrollPosition(); // Save one last time on unmount
+    };
+  }, [key]);
+  
+  // Track navigation actions
   useEffect(() => {
     const unlisten = history.listen((_location, action) => {
-      // Save the current scroll position with the current location key
+      // Set isBackNavigation flag when using browser back/forward buttons
+      isBackNavigation.current = action === 'POP';
+      
+      // Always save current position before navigation
       const currentKey = history.location.key;
       if (currentKey) {
         scrollPositions.current[currentKey] = window.scrollY;
       }
-      
-      // Set isBackNavigation flag when using browser back/forward buttons
-      isBackNavigation.current = action === 'POP';
     });
     
     return () => {
@@ -46,17 +68,17 @@ export const useScrollRestoration = () => {
         // Scroll to top for new navigation (not back/forward)
         window.scrollTo(0, 0);
       }
-    }, 10);
+    }, 100); // Slightly longer timeout for more reliable restoration
     
     return () => clearTimeout(timeoutId);
   }, [pathname, key]);
   
-  // Save current position on unmount
+  // Save current position on component unmount
   useEffect(() => {
     return () => {
       if (key) {
         scrollPositions.current[key] = window.scrollY;
       }
     };
-  }, [key]);
+  }, []);
 };
