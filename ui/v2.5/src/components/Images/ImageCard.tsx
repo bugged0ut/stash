@@ -12,11 +12,7 @@ import { faBox, faImages, faSearch } from "@fortawesome/free-solid-svg-icons";
 import { imageTitle } from "src/core/files";
 import { TruncatedText } from "../Shared/TruncatedText";
 import { StudioOverlay } from "../Shared/GridCard/StudioOverlay";
-import {
-  convertToRatingFormat,
-  RatingSystemType,
-  RatingStarPrecision,
-} from "src/utils/rating";
+import { RatingSystem } from "../Shared/Rating/RatingSystem";
 
 interface IImageCardProps {
   image: GQL.SlimImageDataFragment;
@@ -169,13 +165,7 @@ export const ImageCard: React.FC<IImageCardProps> = (
             lineCount={3}
           />
           {props.image.rating100 ? (
-            <div>
-              Rating:
-              {convertToRatingFormat(props.image.rating100, {
-                type: RatingSystemType.Decimal,
-                starPrecision: RatingStarPrecision.Half,
-              })}
-            </div>
+            <RatingSystem value={props.image.rating100} disabled />
           ) : null}
           {props.image.tags.map((tag) => (
             <TagLink key={tag.id} tag={tag} linkType="image" />
