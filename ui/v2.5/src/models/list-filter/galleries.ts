@@ -22,7 +22,7 @@ import { DisplayMode } from "./types";
 import { RatingCriterionOption } from "./criteria/rating";
 import { PathCriterionOption } from "./criteria/path";
 
-const defaultSortBy = "path";
+const defaultSortBy = "random";
 
 const sortByOptions = ["date", ...MediaSortByOptions]
   .map(ListFilterOptions.createSortBy)

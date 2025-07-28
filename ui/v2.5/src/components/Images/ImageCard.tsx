@@ -18,6 +18,8 @@ import {
 import { imageTitle } from "src/core/files";
 import { TruncatedText } from "../Shared/TruncatedText";
 import { StudioOverlay } from "../Shared/GridCard/StudioOverlay";
+import { convertToRatingFormat } from "src/utils/rating";
+import { RatingSystemType, RatingStarPrecision } from "src/utils/rating";
 
 interface IImageCardProps {
   image: GQL.SlimImageDataFragment;
@@ -39,27 +41,6 @@ export const ImageCard: React.FC<IImageCardProps> = (
         : undefined,
     [props.image]
   );
-
-  function maybeRenderTagPopoverButton() {
-    if (props.image.tags.length <= 0) return;
-
-    const popoverContent = props.image.tags.map((tag) => (
-      <TagLink key={tag.id} tag={tag} linkType="image" />
-    ));
-
-    return (
-      <HoverPopover
-        className="tag-count"
-        placement="bottom"
-        content={popoverContent}
-      >
-        <Button className="minimal">
-          <Icon icon={faTag} />
-          <span>{props.image.tags.length}</span>
-        </Button>
-      </HoverPopover>
-    );
-  }
 
   function maybeRenderPerformerPopoverButton() {
     if (props.image.performers.length <= 0) return;
@@ -132,7 +113,6 @@ export const ImageCard: React.FC<IImageCardProps> = (
         <>
           <hr />
           <ButtonGroup className="card-popovers">
-            {maybeRenderTagPopoverButton()}
             {maybeRenderPerformerPopoverButton()}
             {maybeRenderOCounter()}
             {maybeRenderGallery()}
@@ -181,7 +161,6 @@ export const ImageCard: React.FC<IImageCardProps> = (
               </div>
             ) : undefined}
           </div>
-          <RatingBanner rating={props.image.rating100} />
         </>
       }
       details={
@@ -192,6 +171,18 @@ export const ImageCard: React.FC<IImageCardProps> = (
             text={props.image.details}
             lineCount={3}
           />
+          {props.image.rating100 ? (
+            <div>
+              Rating:
+              {convertToRatingFormat(props.image.rating100, {
+                type: RatingSystemType.Decimal,
+                starPrecision: RatingStarPrecision.Half,
+              })}
+            </div>
+          ) : null}
+          {props.image.tags.map((tag) => (
+            <TagLink key={tag.id} tag={tag} linkType="image" />
+          ))}
         </div>
       }
       overlays={<StudioOverlay studio={props.image.studio} />}
