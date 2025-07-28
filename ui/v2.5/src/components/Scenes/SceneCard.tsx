@@ -150,24 +150,18 @@ const SceneCardPopovers = PatchComponent(
       return group?.scene_index ?? undefined;
     }, [props.fromGroupId, props.scene.groups]);
 
-    function maybeRenderTagPopoverButton() {
+    function maybeRenderTagsList() {
       if (props.scene.tags.length <= 0) return;
 
-      const popoverContent = props.scene.tags.map((tag) => (
-        <TagLink key={tag.id} tag={tag} />
-      ));
-
       return (
-        <HoverPopover
-          className="tag-count"
-          placement="bottom"
-          content={popoverContent}
-        >
-          <Button className="minimal">
-            <Icon icon={faTag} />
-            <span>{props.scene.tags.length}</span>
-          </Button>
-        </HoverPopover>
+        <div className="tag-list">
+          <Icon icon={faTag} />
+          <div className="tag-list-container">
+            {props.scene.tags.map((tag) => (
+              <TagLink key={tag.id} tag={tag} />
+            ))}
+          </div>
+        </div>
       );
     }
 
@@ -304,8 +298,8 @@ const SceneCardPopovers = PatchComponent(
           <>
             <Description sceneNumber={sceneNumber} />
             <hr />
+            {maybeRenderTagsList()}
             <ButtonGroup className="card-popovers">
-              {maybeRenderTagPopoverButton()}
               {maybeRenderPerformerPopoverButton()}
               {maybeRenderGroupPopoverButton()}
               {maybeRenderSceneMarkerPopoverButton()}

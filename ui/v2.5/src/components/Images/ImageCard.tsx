@@ -7,18 +7,18 @@ import { GalleryLink, TagLink } from "src/components/Shared/TagLink";
 import { HoverPopover } from "src/components/Shared/HoverPopover";
 import { PerformerPopoverButton } from "src/components/Shared/PerformerPopoverButton";
 import { GridCard } from "src/components/Shared/GridCard/GridCard";
-import { RatingBanner } from "src/components/Shared/RatingBanner";
 import {
   faBox,
   faImages,
   faSearch,
-  faTag,
 } from "@fortawesome/free-solid-svg-icons";
 import { imageTitle } from "src/core/files";
 import { PatchComponent } from "src/patch";
 import { TruncatedText } from "../Shared/TruncatedText";
 import { StudioOverlay } from "../Shared/GridCard/StudioOverlay";
 import { OCounterButton } from "../Shared/CountButton";
+import { convertToRatingFormat } from "src/utils/rating";
+import { RatingSystemType, RatingStarPrecision } from "src/utils/rating";
 
 interface IImageCardProps {
   image: GQL.SlimImageDataFragment;
@@ -33,27 +33,6 @@ interface IImageCardProps {
 const ImageCardPopovers = PatchComponent(
   "ImageCard.Popovers",
   (props: IImageCardProps) => {
-    function maybeRenderTagPopoverButton() {
-      if (props.image.tags.length <= 0) return;
-
-      const popoverContent = props.image.tags.map((tag) => (
-        <TagLink key={tag.id} tag={tag} linkType="image" />
-      ));
-
-      return (
-        <HoverPopover
-          className="tag-count"
-          placement="bottom"
-          content={popoverContent}
-        >
-          <Button className="minimal">
-            <Icon icon={faTag} />
-            <span>{props.image.tags.length}</span>
-          </Button>
-        </HoverPopover>
-      );
-    }
-
     function maybeRenderPerformerPopoverButton() {
       if (props.image.performers.length <= 0) return;
 
@@ -105,7 +84,6 @@ const ImageCardPopovers = PatchComponent(
     }
 
     if (
-      props.image.tags.length > 0 ||
       props.image.performers.length > 0 ||
       props.image.o_counter ||
       props.image.galleries.length > 0 ||
@@ -115,7 +93,6 @@ const ImageCardPopovers = PatchComponent(
         <>
           <hr />
           <ButtonGroup className="card-popovers">
-            {maybeRenderTagPopoverButton()}
             {maybeRenderPerformerPopoverButton()}
             {maybeRenderOCounter()}
             {maybeRenderGallery()}
@@ -140,6 +117,18 @@ const ImageCardDetails = PatchComponent(
           text={props.image.details}
           lineCount={3}
         />
+        {props.image.rating100 ? (
+          <div>
+            Rating:
+            {convertToRatingFormat(props.image.rating100, {
+              type: RatingSystemType.Decimal,
+              starPrecision: RatingStarPrecision.Half,
+            })}
+          </div>
+        ) : null}
+        {props.image.tags.map((tag) => (
+          <TagLink key={tag.id} tag={tag} linkType="image" />
+        ))}
       </div>
     );
   }
@@ -183,26 +172,23 @@ const ImageCardImage = PatchComponent(
     const ImagePreview = video ? "video" : "img";
 
     return (
-      <>
-        <div className={cx("image-card-preview", { portrait: isPortrait() })}>
-          <ImagePreview
-            loop={video}
-            autoPlay={video}
-            playsInline={video}
-            className="image-card-preview-image"
-            alt={props.image.title ?? ""}
-            src={source}
-          />
-          {props.onPreview ? (
-            <div className="preview-button">
-              <Button onClick={props.onPreview}>
-                <Icon icon={faSearch} />
-              </Button>
-            </div>
-          ) : undefined}
-        </div>
-        <RatingBanner rating={props.image.rating100} />
-      </>
+      <div className={cx("image-card-preview", { portrait: isPortrait() })}>
+        <ImagePreview
+          loop={video}
+          autoPlay={video}
+          playsInline={video}
+          className="image-card-preview-image"
+          alt={props.image.title ?? ""}
+          src={source}
+        />
+        {props.onPreview ? (
+          <div className="preview-button">
+            <Button onClick={props.onPreview}>
+              <Icon icon={faSearch} />
+            </Button>
+          </div>
+        ) : undefined}
+      </div>
     );
   }
 );
