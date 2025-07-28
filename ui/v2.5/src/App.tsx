@@ -43,6 +43,7 @@ import { getPlatformURL } from "./core/createClient";
 import { lazyComponent } from "./utils/lazyComponent";
 import { isPlatformUniquelyRenderedByApple } from "./utils/apple";
 import Event from "./hooks/event";
+import { useScrollRestoration } from "./hooks/useScrollRestoration";
 
 import { PluginRoutes, PluginsLoader } from "./plugins";
 
@@ -139,6 +140,9 @@ function translateLanguageLocale(l: string) {
 export const App: React.FC = () => {
   const config = useConfiguration();
   const [saveUI] = useConfigureUI();
+
+  // Initialize scroll restoration
+  useScrollRestoration();
 
   const { data: systemStatusData } = useSystemStatus();
 
