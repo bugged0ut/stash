@@ -142,21 +142,6 @@ const SceneCardPopovers = PatchComponent(
       return group?.scene_index ?? undefined;
     }, [props.fromGroupId, props.scene.groups]);
 
-    function maybeRenderTagsList() {
-      if (props.scene.tags.length <= 0) return;
-
-      return (
-        <div className="tag-list">
-          <Icon icon={faTag} />
-          <div className="tag-list-container">
-            {props.scene.tags.map((tag) => (
-              <TagLink key={tag.id} tag={tag} />
-            ))}
-          </div>
-        </div>
-      );
-    }
-
     function maybeRenderPerformerPopoverButton() {
       if (props.scene.performers.length <= 0) return;
 
@@ -299,7 +284,6 @@ const SceneCardPopovers = PatchComponent(
           <>
             <Description sceneNumber={sceneNumber} />
             <hr />
-            {maybeRenderTagsList()}
             <ButtonGroup className="card-popovers">
               {maybeRenderPerformerPopoverButton()}
               {maybeRenderGroupPopoverButton()}
@@ -335,9 +319,14 @@ const SceneCardDetails = PatchComponent(
         {props.scene.rating100 ? (
           <RatingSystem value={props.scene.rating100} disabled />
         ) : null}
-        {props.scene.tags.map((tag) => (
-          <TagLink key={tag.id} tag={tag} linkType="scene" />
-        ))}
+        <div className="tag-list">
+          <Icon icon={faTag} className="inline-block" />
+          <div className="tag-list-container">
+            {props.scene.tags.map((tag) => (
+              <TagLink key={tag.id} tag={tag} linkType="scene" />
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
@@ -427,7 +416,6 @@ const SceneCardImage = PatchComponent(
           vttPath={props.scene.paths.vtt ?? undefined}
           onScrubberClick={onScrubberClick}
         />
-        <RatingBanner rating={props.scene.rating100} />
         {maybeRenderSceneSpecsOverlay()}
         {maybeRenderInteractiveSpeedOverlay()}
       </>
