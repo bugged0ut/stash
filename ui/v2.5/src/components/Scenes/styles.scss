@@ -15,33 +15,14 @@
 }
 
 .tag-list {
-  align-items: flex-start;
+  align-items: center;
   display: flex;
-  flex-direction: column;
-  margin-bottom: 10px;
-  padding: 0 5px;
+  flex-wrap: wrap;
+  margin-bottom: 0.1rem;
 
   svg {
-    margin-bottom: 5px;
-  }
-
-  .tag-list-container {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 5px;
-
-    a {
-      background-color: rgba(0, 0, 0, 0.1);
-      border-radius: 4px;
-      font-size: 0.8rem;
-      padding: 2px 6px;
-      transition: background-color 0.2s ease;
-      white-space: nowrap;
-
-      &:hover {
-        background-color: rgba(0, 0, 0, 0.2);
-      }
-    }
+    padding-top: 0.1rem;
+    display: inline-block;
   }
 }
 
