@@ -4,7 +4,12 @@ import { useHistory } from "react-router-dom";
 import cx from "classnames";
 import * as GQL from "src/core/generated-graphql";
 import { Icon } from "../Shared/Icon";
-import { GalleryLink, TagLink, SceneMarkerLink } from "../Shared/TagLink";
+import {
+  GalleryLink,
+  TagLink,
+  SceneMarkerLink,
+  PerformerLink,
+} from "../Shared/TagLink";
 import { HoverPopover } from "../Shared/HoverPopover";
 import { SweatDrops } from "../Shared/SweatDrops";
 import { TruncatedText } from "../Shared/TruncatedText";
@@ -12,9 +17,7 @@ import NavUtils from "src/utils/navigation";
 import TextUtils from "src/utils/text";
 import { SceneQueue } from "src/models/sceneQueue";
 import { ConfigurationContext } from "src/hooks/Config";
-import { PerformerPopoverButton } from "../Shared/PerformerPopoverButton";
 import { GridCard } from "../Shared/GridCard/GridCard";
-import { RatingBanner } from "../Shared/RatingBanner";
 import { FormattedMessage } from "react-intl";
 import {
   faBox,
@@ -23,6 +26,7 @@ import {
   faImages,
   faMapMarkerAlt,
   faTag,
+  faUser,
 } from "@fortawesome/free-solid-svg-icons";
 import { objectPath, objectTitle } from "src/core/files";
 import { PreviewScrubber } from "./PreviewScrubber";
@@ -56,7 +60,7 @@ export const ScenePreview: React.FC<IScenePreviewProps> = ({
       entries.forEach((entry) => {
         if (entry.intersectionRatio > 0)
           // Catch is necessary due to DOMException if user hovers before clicking on page
-          videoEl.current?.play()?.catch(() => { });
+          videoEl.current?.play()?.catch(() => {});
         else videoEl.current?.pause();
       });
     });
@@ -141,17 +145,6 @@ const SceneCardPopovers = PatchComponent(
       );
       return group?.scene_index ?? undefined;
     }, [props.fromGroupId, props.scene.groups]);
-
-    function maybeRenderPerformerPopoverButton() {
-      if (props.scene.performers.length <= 0) return;
-
-      return (
-        <PerformerPopoverButton
-          performers={props.scene.performers}
-          linkType="scene"
-        />
-      );
-    }
 
     function maybeRenderGroupPopoverButton() {
       if (props.scene.groups.length <= 0) return;
@@ -283,9 +276,7 @@ const SceneCardPopovers = PatchComponent(
         return (
           <>
             <Description sceneNumber={sceneNumber} />
-            <hr />
             <ButtonGroup className="card-popovers">
-              {maybeRenderPerformerPopoverButton()}
               {maybeRenderGroupPopoverButton()}
               {maybeRenderSceneMarkerPopoverButton()}
               {maybeRenderOCounter()}
@@ -319,14 +310,30 @@ const SceneCardDetails = PatchComponent(
         {props.scene.rating100 ? (
           <RatingSystem value={props.scene.rating100} disabled />
         ) : null}
-        <div className="tag-list">
-          <Icon icon={faTag} className="inline-block" />
-          <div className="tag-list-container">
-            {props.scene.tags.map((tag) => (
-              <TagLink key={tag.id} tag={tag} linkType="scene" />
-            ))}
+        {props.scene.tags.length > 0 ? (
+          <div className="tag-list">
+            <Icon icon={faTag} className="inline-block" />
+            <div className="tag-list-container">
+              {props.scene.tags.map((tag) => (
+                <TagLink key={tag.id} tag={tag} linkType="scene" />
+              ))}
+            </div>
           </div>
-        </div>
+        ) : null}
+        {props.scene.performers.length > 0 ? (
+          <div className="performer-list">
+            <Icon icon={faUser} className="inline-block" />
+            <div className="performer-list-container">
+              {props.scene.performers.map((performer) => (
+                <PerformerLink
+                  key={performer.id}
+                  performer={performer}
+                  linkType="scene"
+                />
+              ))}
+            </div>
+          </div>
+        ) : null}
       </div>
     );
   }
@@ -391,10 +398,10 @@ const SceneCardImage = PatchComponent(
     function onScrubberClick(timestamp: number) {
       const link = props.queue
         ? props.queue.makeLink(props.scene.id, {
-          sceneIndex: props.index,
-          continue: cont,
-          start: timestamp,
-        })
+            sceneIndex: props.index,
+            continue: cont,
+            start: timestamp,
+          })
         : `/scenes/${props.scene.id}?t=${timestamp}`;
 
       history.push(link);
@@ -453,9 +460,9 @@ export const SceneCard = PatchComponent(
 
     const sceneLink = props.queue
       ? props.queue.makeLink(props.scene.id, {
-        sceneIndex: props.index,
-        continue: cont,
-      })
+          sceneIndex: props.index,
+          continue: cont,
+        })
       : `/scenes/${props.scene.id}`;
 
     return (
