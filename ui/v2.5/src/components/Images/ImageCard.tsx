@@ -7,18 +7,17 @@ import { GalleryLink, TagLink } from "src/components/Shared/TagLink";
 import { HoverPopover } from "src/components/Shared/HoverPopover";
 import { PerformerPopoverButton } from "src/components/Shared/PerformerPopoverButton";
 import { GridCard } from "src/components/Shared/GridCard/GridCard";
-import {
-  faBox,
-  faImages,
-  faSearch,
-} from "@fortawesome/free-solid-svg-icons";
+import { faBox, faImages, faSearch } from "@fortawesome/free-solid-svg-icons";
 import { imageTitle } from "src/core/files";
 import { PatchComponent } from "src/patch";
 import { TruncatedText } from "../Shared/TruncatedText";
 import { StudioOverlay } from "../Shared/GridCard/StudioOverlay";
 import { OCounterButton } from "../Shared/CountButton";
-import { convertToRatingFormat } from "src/utils/rating";
-import { RatingSystemType, RatingStarPrecision } from "src/utils/rating";
+import {
+  convertToRatingFormat,
+  RatingSystemType,
+  RatingStarPrecision,
+} from "src/utils/rating";
 
 interface IImageCardProps {
   image: GQL.SlimImageDataFragment;
