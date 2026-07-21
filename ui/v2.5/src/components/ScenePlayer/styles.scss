@@ -706,7 +706,9 @@ $sceneTabWidth: 450px;
 }
 
 .scene-player-container {
-  position: relative;
+  align-self: start;
+  position: sticky;
+  top: 4rem;
 
   .scene-nav-button {
     background: none;

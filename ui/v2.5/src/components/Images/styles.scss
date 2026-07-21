@@ -248,7 +248,9 @@ $imageTabWidth: 450px;
 }
 
 .image-container {
-  position: relative;
+  align-self: start;
+  position: sticky;
+  top: 4rem;
 
   .image-nav-button {
     background: none;

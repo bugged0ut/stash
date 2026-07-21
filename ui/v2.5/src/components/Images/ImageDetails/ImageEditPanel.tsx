@@ -491,18 +491,6 @@ export const ImageEditPanel: React.FC<IProps> = ({
         <Row className="form-container px-3">
           <Col lg={7} xl={12}>
             {renderInputField("title")}
-            {renderInputField("code", "text", "scene_code")}
-
-            {renderURLListField(
-              "urls",
-              onScrapeImageURL,
-              urlScrapable,
-              "urls",
-              urlProps
-            )}
-
-            {renderDateField("date")}
-            {renderInputField("photographer")}
 
             {renderGalleriesField()}
             {renderStudioField()}
