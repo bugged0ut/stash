@@ -1009,32 +1009,6 @@ const SceneLoader: React.FC<RouteComponentProps<ISceneParams>> = ({
     currentQueueIndex !== -1 &&
     (currentQueueIndex < queueScenes.length - 1 || queueHasMoreScenes);
 
-  const [touchStart, setTouchStart] = useState<number | null>(null);
-  const [touchEnd, setTouchEnd] = useState<number | null>(null);
-
-  const minSwipeDistance = 50;
-
-  const onTouchStart = (e: React.TouchEvent) => {
-    setTouchEnd(null);
-    setTouchStart(e.targetTouches[0].clientX);
-  };
-
-  const onTouchMove = (e: React.TouchEvent) => {
-    setTouchEnd(e.targetTouches[0].clientX);
-  };
-
-  const onTouchEnd = () => {
-    if (!touchStart || !touchEnd) return;
-    const distance = touchStart - touchEnd;
-    const isLeftSwipe = distance > minSwipeDistance;
-    const isRightSwipe = distance < -minSwipeDistance;
-    if (isLeftSwipe && hasNextScene) {
-      queueNext(true);
-    } else if (isRightSwipe && hasPrevScene) {
-      queuePrevious(true);
-    }
-  };
-
   if (!scene) {
     if (loading) return <LoadingIndicator />;
     if (error) return <ErrorMessage error={error.message} />;
@@ -1063,9 +1037,6 @@ const SceneLoader: React.FC<RouteComponentProps<ISceneParams>> = ({
       />
       <div
         className={`scene-player-container ${collapsed ? "expanded" : ""}`}
-        onTouchStart={onTouchStart}
-        onTouchMove={onTouchMove}
-        onTouchEnd={onTouchEnd}
       >
         <ScenePlayer
           key="ScenePlayer"
