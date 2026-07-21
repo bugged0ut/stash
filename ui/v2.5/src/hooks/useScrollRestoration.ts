@@ -17,33 +17,28 @@ export const useScrollRestoration = () => {
 
   // Save scroll position continuously
   useEffect(() => {
-    // Save scroll position periodically while on the page
     const saveScrollPosition = () => {
       if (key) {
         scrollPositions.current[key] = window.scrollY;
       }
     };
 
-    // Save position on scroll events
     window.addEventListener("scroll", saveScrollPosition, { passive: true });
 
-    // Also save position periodically (as backup)
     const intervalId = setInterval(saveScrollPosition, 1000);
 
     return () => {
       window.removeEventListener("scroll", saveScrollPosition);
       clearInterval(intervalId);
-      saveScrollPosition(); // Save one last time on unmount
+      saveScrollPosition();
     };
   }, [key]);
 
   // Track navigation actions
   useEffect(() => {
     const unlisten = history.listen((_location, action) => {
-      // Set isBackNavigation flag when using browser back/forward buttons
       isBackNavigation.current = action === "POP";
 
-      // Always save current position before navigation
       const currentKey = history.location.key;
       if (currentKey) {
         scrollPositions.current[currentKey] = window.scrollY;
@@ -59,24 +54,60 @@ export const useScrollRestoration = () => {
   useEffect(() => {
     if (!key) return;
 
-    // Use a small delay to ensure DOM has updated
-    const timeoutId = setTimeout(() => {
-      if (
-        isBackNavigation.current &&
-        scrollPositions.current[key] !== undefined
-      ) {
-        // Restore position when navigating back
-        window.scrollTo(0, scrollPositions.current[key]);
-      } else if (!isBackNavigation.current) {
-        // Scroll to top for new navigation (not back/forward)
-        window.scrollTo(0, 0);
-      }
-    }, 100); // Slightly longer timeout for more reliable restoration
+    if (!isBackNavigation.current) {
+      window.scrollTo(0, 0);
+      return;
+    }
 
-    return () => clearTimeout(timeoutId);
+    const targetScrollY = scrollPositions.current[key];
+    if (targetScrollY === undefined || targetScrollY <= 0) return;
+
+    let attempts = 0;
+    const maxAttempts = 30; // Try for up to 3 seconds
+    let userInteracted = false;
+
+    const onUserInteraction = () => {
+      userInteracted = true;
+    };
+
+    window.addEventListener("wheel", onUserInteraction, { passive: true });
+    window.addEventListener("touchmove", onUserInteraction, { passive: true });
+    window.addEventListener("mousedown", onUserInteraction, { passive: true });
+    window.addEventListener("keydown", onUserInteraction, { passive: true });
+
+    const cleanup = () => {
+      window.removeEventListener("wheel", onUserInteraction);
+      window.removeEventListener("touchmove", onUserInteraction);
+      window.removeEventListener("mousedown", onUserInteraction);
+      window.removeEventListener("keydown", onUserInteraction);
+    };
+
+    const intervalId = setInterval(() => {
+      attempts++;
+
+      if (userInteracted) {
+        clearInterval(intervalId);
+        cleanup();
+        return;
+      }
+
+      const maxScrollY =
+        document.documentElement.scrollHeight - window.innerHeight;
+
+      if (maxScrollY >= targetScrollY || attempts >= maxAttempts) {
+        window.scrollTo(0, targetScrollY);
+        clearInterval(intervalId);
+        cleanup();
+      }
+    }, 100);
+
+    return () => {
+      clearInterval(intervalId);
+      cleanup();
+    };
   }, [pathname, key]);
 
-  // Save current position on component unmount
+  // Save current position on unmount
   useEffect(() => {
     return () => {
       if (key) {
