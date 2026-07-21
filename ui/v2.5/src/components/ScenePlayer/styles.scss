@@ -55,6 +55,7 @@ $sceneTabWidth: 450px;
   &.vjs-error .vjs-control-bar {
     display: flex !important;
   }
+
   /* stylelint-enable declaration-no-important */
 
   // allow interaction with the controls when error is displayed
@@ -212,6 +213,7 @@ $sceneTabWidth: 450px;
   .vjs-play-progress .vjs-time-tooltip {
     display: none !important;
   }
+
   /* stylelint-enable declaration-no-important */
 
   .vjs-volume-control {
@@ -223,6 +225,7 @@ $sceneTabWidth: 450px;
     box-shadow: none !important;
     text-shadow: none !important;
   }
+
   /* stylelint-enable declaration-no-important */
 
   .vjs-vtt-thumbnail-display {
@@ -395,6 +398,7 @@ $sceneTabWidth: 450px;
       }
     }
   }
+
   @media (max-width: 576px) {
     .vjs-control-bar {
       .vjs-autostart-button {
@@ -644,6 +648,7 @@ $sceneTabWidth: 450px;
     margin-right: 5px;
   }
 }
+
 @media (min-width: 1200px) {
   .scene-tabs {
     flex: 0 0 $sceneTabWidth;
@@ -696,6 +701,45 @@ $sceneTabWidth: 450px;
     &.expanded {
       flex: 0 0 calc(100% - 15px);
       max-width: calc(100% - 15px);
+    }
+  }
+}
+
+.scene-player-container {
+  position: relative;
+
+  .scene-nav-button {
+    background-color: rgba(0, 0, 0, 0.3);
+    border: none;
+    border-radius: 50%;
+    color: #fff;
+    display: flex;
+    height: 3rem;
+    justify-content: center;
+    opacity: 0.6;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    transition: opacity 0.2s, background-color 0.2s;
+    width: 3rem;
+    z-index: 10;
+
+    &:hover {
+      background-color: rgba(0, 0, 0, 0.6);
+      color: #fff;
+      opacity: 1;
+    }
+
+    &.prev {
+      left: 1rem;
+    }
+
+    &.next {
+      right: 1rem;
+    }
+
+    svg {
+      margin: auto;
     }
   }
 }

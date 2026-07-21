@@ -1004,6 +1004,37 @@ const SceneLoader: React.FC<RouteComponentProps<ISceneParams>> = ({
     loadScene(sceneID, autoPlayOnSelected, getScenePage(sceneID));
   }
 
+  const hasPrevScene = currentQueueIndex > 0 || queueStart > 1;
+  const hasNextScene =
+    currentQueueIndex !== -1 &&
+    (currentQueueIndex < queueScenes.length - 1 || queueHasMoreScenes);
+
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+
+  const minSwipeDistance = 50;
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+    if (isLeftSwipe && hasNextScene) {
+      queueNext(true);
+    } else if (isRightSwipe && hasPrevScene) {
+      queuePrevious(true);
+    }
+  };
+
   if (!scene) {
     if (loading) return <LoadingIndicator />;
     if (error) return <ErrorMessage error={error.message} />;
@@ -1030,7 +1061,12 @@ const SceneLoader: React.FC<RouteComponentProps<ISceneParams>> = ({
         setCollapsed={setCollapsed}
         setContinuePlaylist={setContinuePlaylist}
       />
-      <div className={`scene-player-container ${collapsed ? "expanded" : ""}`}>
+      <div
+        className={`scene-player-container ${collapsed ? "expanded" : ""}`}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+      >
         <ScenePlayer
           key="ScenePlayer"
           scene={scene}
@@ -1043,6 +1079,22 @@ const SceneLoader: React.FC<RouteComponentProps<ISceneParams>> = ({
           onNext={() => queueNext(true)}
           onPrevious={() => queuePrevious(true)}
         />
+        {hasPrevScene && (
+          <Button
+            className="scene-nav-button prev minimal"
+            onClick={() => queuePrevious(true)}
+          >
+            <Icon icon={faChevronLeft} />
+          </Button>
+        )}
+        {hasNextScene && (
+          <Button
+            className="scene-nav-button next minimal"
+            onClick={() => queueNext(true)}
+          >
+            <Icon icon={faChevronRight} />
+          </Button>
+        )}
       </div>
     </div>
   );
