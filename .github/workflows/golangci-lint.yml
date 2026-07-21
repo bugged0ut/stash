@@ -1,24 +1,6 @@
 name: Lint (golangci-lint)
 on:
-  push:
-    tags:
-      - v*
-    branches:
-      - master
-      - develop
-      - 'releases/**'
-    paths:
-      - '**.go'
-      - 'go.mod'
-      - 'go.sum'
-      - '.golangci.yml'
-  pull_request:
-    branches: [ master, develop ]
-    paths:
-      - '**.go'
-      - 'go.mod'
-      - 'go.sum'
-      - '.golangci.yml'
+  workflow_dispatch:
 
 jobs:
   golangci:
