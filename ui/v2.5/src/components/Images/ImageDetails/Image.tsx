@@ -384,11 +384,6 @@ const ImagePage: React.FC<IProps> = ({ image }) => {
             playsInline={image.visual_files[0].__typename == "VideoFile"}
             controls={image.visual_files[0].__typename == "VideoFile"}
             className="m-sm-auto no-gutter image-image"
-            style={
-              image.visual_files[0].__typename == "VideoFile"
-                ? { width: "100%", height: "100%" }
-                : {}
-            }
             alt={title}
             src={image.paths.image ?? ""}
           />

@@ -14,7 +14,7 @@ export const useScrollRestoration = () => {
   const history = useHistory();
   const scrollPositions = useRef<IScrollPositions>({});
   const isBackNavigation = useRef(false);
-  
+
   // Save scroll position continuously
   useEffect(() => {
     // Save scroll position periodically while on the page
@@ -23,45 +23,48 @@ export const useScrollRestoration = () => {
         scrollPositions.current[key] = window.scrollY;
       }
     };
-    
+
     // Save position on scroll events
     window.addEventListener("scroll", saveScrollPosition, { passive: true });
-    
+
     // Also save position periodically (as backup)
     const intervalId = setInterval(saveScrollPosition, 1000);
-    
+
     return () => {
       window.removeEventListener("scroll", saveScrollPosition);
       clearInterval(intervalId);
       saveScrollPosition(); // Save one last time on unmount
     };
   }, [key]);
-  
+
   // Track navigation actions
   useEffect(() => {
     const unlisten = history.listen((_location, action) => {
       // Set isBackNavigation flag when using browser back/forward buttons
-      isBackNavigation.current = action === 'POP';
-      
+      isBackNavigation.current = action === "POP";
+
       // Always save current position before navigation
       const currentKey = history.location.key;
       if (currentKey) {
         scrollPositions.current[currentKey] = window.scrollY;
       }
     });
-    
+
     return () => {
       unlisten();
     };
   }, [history]);
-  
+
   // Handle scroll restoration
   useEffect(() => {
     if (!key) return;
-    
+
     // Use a small delay to ensure DOM has updated
     const timeoutId = setTimeout(() => {
-      if (isBackNavigation.current && scrollPositions.current[key] !== undefined) {
+      if (
+        isBackNavigation.current &&
+        scrollPositions.current[key] !== undefined
+      ) {
         // Restore position when navigating back
         window.scrollTo(0, scrollPositions.current[key]);
       } else if (!isBackNavigation.current) {
@@ -69,10 +72,10 @@ export const useScrollRestoration = () => {
         window.scrollTo(0, 0);
       }
     }, 100); // Slightly longer timeout for more reliable restoration
-    
+
     return () => clearTimeout(timeoutId);
   }, [pathname, key]);
-  
+
   // Save current position on component unmount
   useEffect(() => {
     return () => {

@@ -65,7 +65,7 @@ export const ScenePreview: React.FC<IScenePreviewProps> = ({
       entries.forEach((entry) => {
         if (entry.intersectionRatio > 0)
           // Catch is necessary due to DOMException if user hovers before clicking on page
-          videoEl.current?.play()?.catch(() => { });
+          videoEl.current?.play()?.catch(() => {});
         else videoEl.current?.pause();
       });
     });
@@ -409,10 +409,10 @@ const SceneCardImage = PatchComponent(
       if (props.selecting) return;
       const link = props.queue
         ? props.queue.makeLink(props.scene.id, {
-          sceneIndex: props.index,
-          continue: cont,
-          start: timestamp,
-        })
+            sceneIndex: props.index,
+            continue: cont,
+            start: timestamp,
+          })
         : `/scenes/${props.scene.id}?t=${timestamp}`;
 
       history.push(link);
@@ -473,9 +473,9 @@ export const SceneCard = PatchComponent(
 
     const sceneLink = props.queue
       ? props.queue.makeLink(props.scene.id, {
-        sceneIndex: props.index,
-        continue: cont,
-      })
+          sceneIndex: props.index,
+          continue: cont,
+        })
       : `/scenes/${props.scene.id}`;
 
     return (

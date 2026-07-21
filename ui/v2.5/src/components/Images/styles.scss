@@ -93,10 +93,19 @@
     margin-bottom: 2px;
     position: relative;
 
+    @media (max-width: 576px) {
+      /* stylelint-disable-next-line declaration-no-important */
+      height: auto !important;
+    }
+
     &-image {
       height: 100%;
       object-fit: contain;
       width: 100%;
+
+      @media (max-width: 576px) {
+        height: auto;
+      }
     }
 
     &.portrait {
@@ -136,8 +145,7 @@ $imageTabWidth: 450px;
   }
 }
 
-.image-tabs,
-.image-container {
+.image-tabs {
   padding-left: 15px;
   padding-right: 15px;
   position: relative;
@@ -145,21 +153,48 @@ $imageTabWidth: 450px;
 }
 
 .image-container {
-  display: flex;
+  padding-left: 0;
+  padding-right: 0;
+  position: relative;
+  width: 100%;
+}
 
-  img {
-    max-height: calc(100vh - 4rem);
-    max-width: 100%;
+.image-container {
+  align-items: flex-start;
+  display: flex;
+  justify-content: center;
+
+  img,
+  video {
+    height: auto;
     object-fit: contain;
+    width: 100%;
   }
 }
 
 @media (min-width: 1200px) {
   .image-container {
     height: calc(100vh - 4rem);
+    padding-left: 15px;
+    padding-right: 15px;
+
+    img {
+      max-height: calc(100vh - 4rem);
+      max-width: 100%;
+      object-fit: contain;
+      width: auto;
+    }
+
+    video {
+      height: 100%;
+      width: 100%;
+    }
   }
 }
-@media (min-width: 1200px), (max-width: 575px) {
+
+/* stylelint-disable-next-line at-rule-empty-line-before */
+@media (min-width: 1200px),
+(max-width: 575px) {
   .image-performers {
     .performer-card {
       width: 15rem;
