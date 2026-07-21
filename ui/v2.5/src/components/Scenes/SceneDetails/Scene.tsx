@@ -210,7 +210,7 @@ const ScenePage: React.FC<IProps> = PatchComponent("ScenePage", (props) => {
 
   const [organizedLoading, setOrganizedLoading] = useState(false);
 
-  const [activeTabKey, setActiveTabKey] = useState("scene-details-panel");
+  const [activeTabKey, setActiveTabKey] = useState("scene-edit-panel");
 
   const [isMerging, setIsMerging] = useState(false);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState<boolean>(false);

@@ -118,7 +118,7 @@ const ImagePage: React.FC<IProps> = ({ image }) => {
 
   const [organizedLoading, setOrganizedLoading] = useState(false);
 
-  const [activeTabKey, setActiveTabKey] = useState("image-details-panel");
+  const [activeTabKey, setActiveTabKey] = useState("image-edit-panel");
 
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState<boolean>(false);
   const [isGenerateDialogOpen, setIsGenerateDialogOpen] = useState(false);
