@@ -709,33 +709,35 @@ $sceneTabWidth: 450px;
   position: relative;
 
   .scene-nav-button {
-    background-color: rgba(0, 0, 0, 0.3);
+    background: none;
     border: none;
-    border-radius: 50%;
     color: #fff;
     display: flex;
-    height: 3rem;
+    font-size: 2.5rem;
+    height: 4rem;
     justify-content: center;
-    opacity: 0.6;
+    opacity: 0.25;
     position: absolute;
     top: 50%;
     transform: translateY(-50%);
-    transition: opacity 0.2s, background-color 0.2s;
+    transition: opacity 0.2s;
     width: 3rem;
     z-index: 10;
 
-    &:hover {
-      background-color: rgba(0, 0, 0, 0.6);
+    &:hover,
+    &:active,
+    &:focus {
+      background: none;
       color: #fff;
-      opacity: 1;
+      opacity: 0.85;
     }
 
     &.prev {
-      left: 1rem;
+      left: 0.5rem;
     }
 
     &.next {
-      right: 1rem;
+      right: 0.5rem;
     }
 
     svg {
