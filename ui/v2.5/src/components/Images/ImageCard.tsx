@@ -21,6 +21,7 @@ interface IImageCardProps {
   selecting?: boolean;
   selected?: boolean | undefined;
   zoomIndex: number;
+  queueParams?: string;
   onSelectedChanged?: (selected: boolean, shiftKey: boolean) => void;
   onPreview?: (ev: MouseEvent) => void;
 }
@@ -185,10 +186,14 @@ const ImageCardImage = PatchComponent(
 export const ImageCard: React.FC<IImageCardProps> = PatchComponent(
   "ImageCard",
   (props: IImageCardProps) => {
+    const imageLink = props.queueParams
+      ? `/images/${props.image.id}?${props.queueParams}`
+      : `/images/${props.image.id}`;
+
     return (
       <GridCard
         className={`image-card zoom-${props.zoomIndex}`}
-        url={`/images/${props.image.id}`}
+        url={imageLink}
         width={props.cardWidth}
         title={imageTitle(props.image)}
         linkClassName="image-card-link"

@@ -23,6 +23,10 @@ export const ImageCardGrid: React.FC<IImageCardGrid> = PatchComponent(
     const [componentRef, { width: containerWidth }] = useContainerDimensions();
     const cardWidth = useCardWidth(containerWidth, zoomIndex, zoomWidths);
 
+    const queueParams = React.useMemo(() => {
+      return images.map((img) => `qs=${img.id}`).join("&");
+    }, [images]);
+
     return (
       <div className="row justify-content-center" ref={componentRef}>
         {images.map((image, index) => (
@@ -33,6 +37,7 @@ export const ImageCardGrid: React.FC<IImageCardGrid> = PatchComponent(
             zoomIndex={zoomIndex}
             selecting={selectedIds.size > 0}
             selected={selectedIds.has(image.id)}
+            queueParams={queueParams}
             onSelectedChanged={(selected: boolean, shiftKey: boolean) =>
               onSelectChange(image.id, selected, shiftKey)
             }

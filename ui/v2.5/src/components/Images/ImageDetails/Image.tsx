@@ -1,7 +1,7 @@
-import { Tab, Nav, Dropdown } from "react-bootstrap";
+import { Tab, Nav, Dropdown, Button } from "react-bootstrap";
 import React, { useEffect, useMemo, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
-import { useHistory, RouteComponentProps } from "react-router-dom";
+import { useHistory, useLocation, RouteComponentProps } from "react-router-dom";
 import { Helmet } from "react-helmet";
 import {
   useFindImage,
@@ -24,7 +24,11 @@ import { ImageFileInfoPanel } from "./ImageFileInfoPanel";
 import { ImageEditPanel } from "./ImageEditPanel";
 import { ImageDetailPanel } from "./ImageDetailPanel";
 import { DeleteImagesDialog } from "../DeleteImagesDialog";
-import { faEllipsisV } from "@fortawesome/free-solid-svg-icons";
+import {
+  faEllipsisV,
+  faChevronLeft,
+  faChevronRight,
+} from "@fortawesome/free-solid-svg-icons";
 import { imagePath, imageTitle } from "src/core/files";
 import { isVideo } from "src/utils/visualFile";
 import { useScrollToTopOnMount } from "src/hooks/scrollToTop";
@@ -49,10 +53,62 @@ interface IImageParams {
 
 const ImagePage: React.FC<IProps> = ({ image }) => {
   const history = useHistory();
+  const location = useLocation();
   const Toast = useToast();
   const intl = useIntl();
   const { configuration } = useConfigurationContext();
   const { showStudioText } = configuration?.ui ?? {};
+
+  const queryParams = useMemo(
+    () => new URLSearchParams(location.search),
+    [location.search]
+  );
+  const imageIDs = useMemo(() => queryParams.getAll("qs"), [queryParams]);
+  const currentIndex = useMemo(
+    () => imageIDs.indexOf(image.id),
+    [imageIDs, image.id]
+  );
+  const prevImageID = useMemo(
+    () => (currentIndex > 0 ? imageIDs[currentIndex - 1] : null),
+    [imageIDs, currentIndex]
+  );
+  const nextImageID = useMemo(
+    () =>
+      currentIndex !== -1 && currentIndex < imageIDs.length - 1
+        ? imageIDs[currentIndex + 1]
+        : null,
+    [imageIDs, currentIndex]
+  );
+
+  const navigateToImage = (targetID: string) => {
+    history.replace(`/images/${targetID}${location.search}`);
+  };
+
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+
+  const minSwipeDistance = 50;
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+    if (isLeftSwipe && nextImageID) {
+      navigateToImage(nextImageID);
+    } else if (isRightSwipe && prevImageID) {
+      navigateToImage(prevImageID);
+    }
+  };
 
   const [incrementO] = useImageIncrementO(image.id);
   const [decrementO] = useImageDecrementO(image.id);
@@ -291,12 +347,20 @@ const ImagePage: React.FC<IProps> = ({ image }) => {
     Mousetrap.bind("o", () => {
       onIncrementClick();
     });
+    if (prevImageID) {
+      Mousetrap.bind("left", () => navigateToImage(prevImageID));
+    }
+    if (nextImageID) {
+      Mousetrap.bind("right", () => navigateToImage(nextImageID));
+    }
 
     return () => {
       Mousetrap.unbind("a");
       Mousetrap.unbind("e");
       Mousetrap.unbind("f");
       Mousetrap.unbind("o");
+      Mousetrap.unbind("left");
+      Mousetrap.unbind("right");
     };
   });
 
@@ -376,7 +440,12 @@ const ImagePage: React.FC<IProps> = ({ image }) => {
         </div>
         {renderTabs()}
       </div>
-      <div className="image-container">
+      <div
+        className="image-container"
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+      >
         {image.visual_files.length > 0 && (
           <ImageView
             loop={image.visual_files[0].__typename == "VideoFile"}
@@ -387,6 +456,22 @@ const ImagePage: React.FC<IProps> = ({ image }) => {
             alt={title}
             src={image.paths.image ?? ""}
           />
+        )}
+        {prevImageID && (
+          <Button
+            className="image-nav-button prev minimal"
+            onClick={() => navigateToImage(prevImageID)}
+          >
+            <Icon icon={faChevronLeft} />
+          </Button>
+        )}
+        {nextImageID && (
+          <Button
+            className="image-nav-button next minimal"
+            onClick={() => navigateToImage(nextImageID)}
+          >
+            <Icon icon={faChevronRight} />
+          </Button>
         )}
       </div>
     </div>

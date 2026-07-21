@@ -234,6 +234,12 @@ textarea.scene-description {
   &-preview {
     aspect-ratio: 16/9;
     margin-bottom: 2px;
+
+    @media (max-width: 576px) {
+      aspect-ratio: auto;
+      /* stylelint-disable-next-line declaration-no-important */
+      height: auto !important;
+    }
   }
 
   .scene-group-scene-number {
@@ -254,12 +260,22 @@ textarea.scene-description {
     margin-bottom: 1px;
     position: relative;
 
+    @media (max-width: 576px) {
+      /* stylelint-disable-next-line declaration-no-important */
+      height: auto !important;
+    }
+
     &-image,
     &-video {
       height: 100%;
       object-fit: cover;
       object-position: top;
       width: 100%;
+
+      @media (max-width: 576px) {
+        height: auto;
+        object-fit: contain;
+      }
     }
 
     &-video {
