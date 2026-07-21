@@ -193,8 +193,7 @@ $imageTabWidth: 450px;
 }
 
 /* stylelint-disable-next-line at-rule-empty-line-before */
-@media (min-width: 1200px),
-(max-width: 575px) {
+@media (min-width: 1200px), (max-width: 575px) {
   .image-performers {
     .performer-card {
       width: 15rem;

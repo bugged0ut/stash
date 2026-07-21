@@ -394,6 +394,22 @@ export const MainNavbar: React.FC = () => {
         </Navbar.Brand>
 
         <Nav className="navbar-buttons flex-row ml-auto order-xl-2">
+          <LinkContainer activeClassName="active" exact to="/scenes">
+            <Button
+              className="minimal d-xl-none mr-2"
+              title={intl.formatMessage(messages.scenes)}
+            >
+              <Icon icon={faPlayCircle} />
+            </Button>
+          </LinkContainer>
+          <LinkContainer activeClassName="active" exact to="/images">
+            <Button
+              className="minimal d-xl-none mr-2"
+              title={intl.formatMessage(messages.images)}
+            >
+              <Icon icon={faImage} />
+            </Button>
+          </LinkContainer>
           {!!newPath && (
             <div className="mr-2">
               <Link to={newPath}>
