@@ -18,7 +18,7 @@ import { PopoverCountButton } from "../Shared/PopoverCountButton";
 import GenderIcon from "./GenderIcon";
 import { faLink, faTag } from "@fortawesome/free-solid-svg-icons";
 import { faInstagram, faTwitter } from "@fortawesome/free-brands-svg-icons";
-import { RatingBanner } from "../Shared/RatingBanner";
+import { RatingSystem } from "../Shared/Rating/RatingSystem";
 import { usePerformerUpdate } from "src/core/StashService";
 import { ILabeledId } from "src/models/list-filter/types";
 import { FavoriteIcon } from "../Shared/FavoriteIcon";
@@ -35,7 +35,7 @@ export interface IPerformerCardExtraCriteria {
   performer?: ILabeledId;
 }
 
-interface IPerformerCardProps {
+export interface IPerformerCardProps {
   performer: GQL.PerformerDataFragment;
   cardWidth?: number;
   ageFromDate?: string;
@@ -43,6 +43,7 @@ interface IPerformerCardProps {
   selected?: boolean;
   zoomIndex?: number;
   onSelectedChanged?: (selected: boolean, shiftKey: boolean) => void;
+  onSetRating?: (rating: number | null) => void;
   extraCriteria?: IPerformerCardExtraCriteria;
 }
 
@@ -187,12 +188,6 @@ const PerformerCardOverlays: React.FC<IPerformerCardProps> = PatchComponent(
       }
     }
 
-    function maybeRenderRatingBanner() {
-      if (!performer.rating100) {
-        return;
-      }
-      return <RatingBanner rating={performer.rating100} />;
-    }
 
     function maybeRenderFlag() {
       if (performer.country) {
@@ -276,7 +271,6 @@ const PerformerCardOverlays: React.FC<IPerformerCardProps> = PatchComponent(
           size="2x"
           className="hide-not-favorite"
         />
-        {maybeRenderRatingBanner()}
         {maybeRenderLinks()}
         {maybeRenderFlag()}
       </>
@@ -286,7 +280,9 @@ const PerformerCardOverlays: React.FC<IPerformerCardProps> = PatchComponent(
 
 const PerformerCardDetails: React.FC<IPerformerCardProps> = PatchComponent(
   "PerformerCard.Details",
-  ({ performer, ageFromDate }) => {
+  (props) => {
+    const { performer, ageFromDate, selecting, onSetRating } = props;
+    const [updatePerformer] = usePerformerUpdate();
     const intl = useIntl();
     const age = TextUtils.age(
       performer.birthdate,
@@ -304,14 +300,37 @@ const PerformerCardDetails: React.FC<IPerformerCardProps> = PatchComponent(
       { age, years_old: ageL10String }
     );
 
+    function handleSetRating(value: number | null) {
+      if (onSetRating) {
+        onSetRating(value);
+      } else if (performer.id) {
+        updatePerformer({
+          variables: {
+            input: {
+              id: performer.id,
+              rating100: value,
+            },
+          },
+        });
+      }
+    }
+
     return (
-      <>
+      <div className="performer-card__details">
         {age !== 0 ? (
           <div className="performer-card__age">{ageString}</div>
         ) : (
           ""
         )}
-      </>
+        <div className="rating-container" onClick={(e) => e.stopPropagation()}>
+          <RatingSystem
+            value={performer.rating100}
+            onSetRating={handleSetRating}
+            disabled={selecting}
+            clickToRate
+          />
+        </div>
+      </div>
     );
   }
 );
