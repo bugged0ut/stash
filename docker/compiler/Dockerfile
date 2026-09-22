@@ -58,7 +58,7 @@ COPY --from=osxcross /tmp/osxcross/target /opt/osx-ndk-x86
 COPY --from=freebsd /opt/cross-freebsd /opt/cross-freebsd
 
 # pnpm install with npm
-RUN npm install -g pnpm
+RUN npm install -g pnpm@10.30.3
 
 # git for getting hash
 # make and bash for building
