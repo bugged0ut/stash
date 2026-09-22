@@ -639,6 +639,7 @@ declare namespace PluginApi {
       selected?: boolean | undefined;
       zoomIndex?: number;
       onSelectedChanged?: (selected: boolean, shiftKey: boolean) => void;
+      onSetRating?: (value: number | null) => void;
     }
     interface IScenePreviewProps {
       isPortrait: boolean;

@@ -36,6 +36,7 @@ import { FileSize } from "../Shared/FileSize";
 import { OCounterButton } from "../Shared/CountButton";
 import { defaultPreviewVolume } from "src/core/config";
 import { RatingSystem } from "../Shared/Rating/RatingSystem";
+import { useSceneUpdate } from "src/core/StashService";
 
 interface IScenePreviewProps {
   isPortrait: boolean;
@@ -117,6 +118,7 @@ interface ISceneCardProps {
   zoomIndex?: number;
   onSelectedChanged?: (selected: boolean, shiftKey: boolean) => void;
   fromGroupId?: string;
+  onSetRating?: (value: number | null) => void;
 }
 
 const Description: React.FC<{
@@ -296,6 +298,23 @@ const SceneCardPopovers = PatchComponent(
 const SceneCardDetails = PatchComponent(
   "SceneCard.Details",
   (props: ISceneCardProps) => {
+    const [updateScene] = useSceneUpdate();
+
+    function handleSetRating(value: number | null) {
+      if (props.onSetRating) {
+        props.onSetRating(value);
+      } else if (props.scene.id) {
+        updateScene({
+          variables: {
+            input: {
+              id: props.scene.id,
+              rating100: value,
+            },
+          },
+        });
+      }
+    }
+
     return (
       <div className="scene-card__details">
         <span className="scene-card__date">{props.scene.date}</span>
@@ -307,9 +326,14 @@ const SceneCardDetails = PatchComponent(
           text={props.scene.details}
           lineCount={3}
         />
-        {props.scene.rating100 ? (
-          <RatingSystem value={props.scene.rating100} disabled />
-        ) : null}
+        <div className="rating-container" onClick={(e) => e.stopPropagation()}>
+          <RatingSystem
+            value={props.scene.rating100}
+            onSetRating={handleSetRating}
+            disabled={props.selecting}
+            clickToRate
+          />
+        </div>
         {props.scene.tags.length > 0 ? (
           <div className="tag-list">
             <Icon icon={faTag} className="inline-block" />

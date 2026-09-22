@@ -14,6 +14,7 @@ import { TruncatedText } from "../Shared/TruncatedText";
 import { StudioOverlay } from "../Shared/GridCard/StudioOverlay";
 import { OCounterButton } from "../Shared/CountButton";
 import { RatingSystem } from "../Shared/Rating/RatingSystem";
+import { useImageUpdate } from "src/core/StashService";
 
 interface IImageCardProps {
   image: GQL.SlimImageDataFragment;
@@ -24,6 +25,7 @@ interface IImageCardProps {
   queueParams?: string;
   onSelectedChanged?: (selected: boolean, shiftKey: boolean) => void;
   onPreview?: (ev: MouseEvent) => void;
+  onSetRating?: (value: number | null) => void;
 }
 
 const ImageCardPopovers = PatchComponent(
@@ -105,6 +107,23 @@ const ImageCardPopovers = PatchComponent(
 const ImageCardDetails = PatchComponent(
   "ImageCard.Details",
   (props: IImageCardProps) => {
+    const [updateImage] = useImageUpdate();
+
+    function handleSetRating(value: number | null) {
+      if (props.onSetRating) {
+        props.onSetRating(value);
+      } else if (props.image.id) {
+        updateImage({
+          variables: {
+            input: {
+              id: props.image.id,
+              rating100: value,
+            },
+          },
+        });
+      }
+    }
+
     return (
       <div className="image-card__details">
         <span className="image-card__date">{props.image.date}</span>
@@ -113,9 +132,14 @@ const ImageCardDetails = PatchComponent(
           text={props.image.details}
           lineCount={3}
         />
-        {props.image.rating100 ? (
-          <RatingSystem value={props.image.rating100} disabled />
-        ) : null}
+        <div className="rating-container" onClick={(e) => e.stopPropagation()}>
+          <RatingSystem
+            value={props.image.rating100}
+            onSetRating={handleSetRating}
+            disabled={props.selecting}
+            clickToRate
+          />
+        </div>
         {props.image.tags.map((tag) => (
           <TagLink key={tag.id} tag={tag} linkType="image" />
         ))}
