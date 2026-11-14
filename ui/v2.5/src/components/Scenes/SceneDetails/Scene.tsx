@@ -1097,16 +1097,13 @@ const SceneLoader: React.FC<RouteComponentProps<ISceneParams>> = ({
     }
   }
 
-  function onDelete() {
-    if (
-      continuePlaylist &&
-      currentQueueIndex >= 0 &&
-      currentQueueIndex < queueScenes.length - 1
-    ) {
-      loadScene(queueScenes[currentQueueIndex + 1].id);
-    } else {
-      goBackOrReplace(history, "/scenes");
-    }
+  async function onDelete() {
+    const before = history.location.pathname;
+    await queueNext(false);
+    if (history.location.pathname !== before) return;
+    await queuePrevious(false);
+    if (history.location.pathname !== before) return;
+    goBackOrReplace(history, "/scenes");
   }
 
   function getScenePage(sceneID: string) {

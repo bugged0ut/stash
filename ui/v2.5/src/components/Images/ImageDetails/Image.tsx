@@ -121,27 +121,29 @@ const ImagePage: React.FC<IProps> = ({ image }) => {
   const canPrev = index > 0 || (!!queue.query && index === 0 && page > 1);
 
   const go = useCallback(
-    async (direction: 1 | -1) => {
-      if (paging.current) return;
+    async (direction: 1 | -1, omitID?: string): Promise<boolean> => {
+      if (paging.current) return false;
       const current = pageIDs.indexOf(routeID);
-      if (current === -1) return;
+      if (current === -1) return false;
 
       const neighbor = current + direction;
       if (neighbor >= 0 && neighbor < pageIDs.length) {
-        history.replace(queue.makeLink(pageIDs[neighbor]));
-        return;
+        const ids = omitID ? pageIDs.filter((id) => id !== omitID) : undefined;
+        if (ids) setPageIDs(ids);
+        history.replace(queue.makeLink(pageIDs[neighbor], undefined, ids));
+        return true;
       }
 
-      if (!queue.query) return;
+      if (!queue.query) return false;
       const nextPage = queue.query.currentPage + direction;
-      if (nextPage < 1) return;
+      if (nextPage < 1) return false;
       if (
         direction > 0 &&
         (pageIDs.length < queue.query.itemsPerPage ||
           (total !== null &&
             queue.query.currentPage * queue.query.itemsPerPage >= total))
       ) {
-        return;
+        return false;
       }
 
       paging.current = true;
@@ -152,14 +154,16 @@ const ImagePage: React.FC<IProps> = ({ image }) => {
         const ids = result.data.findImages.images.map((i) => i.id);
         if (!ids.length) {
           setTotal(result.data.findImages.count);
-          return;
+          return false;
         }
         setPageIDs(ids);
         setTotal(result.data.findImages.count);
         const target = direction > 0 ? ids[0] : ids[ids.length - 1];
         history.replace(queue.makeLink(target, nextPage, ids));
+        return true;
       } catch (e) {
         Toast.error(e);
+        return false;
       } finally {
         paging.current = false;
       }
@@ -298,11 +302,12 @@ const ImagePage: React.FC<IProps> = ({ image }) => {
     setRating
   );
 
-  function onDeleteDialogClosed(deleted: boolean) {
+  async function onDeleteDialogClosed(deleted: boolean) {
     setIsDeleteAlertOpen(false);
-    if (deleted) {
-      goBackOrReplace(history, "/images");
-    }
+    if (!deleted) return;
+    if (await go(1, routeID)) return;
+    if (await go(-1, routeID)) return;
+    goBackOrReplace(history, "/images");
   }
 
   function maybeRenderDeleteDialog() {
