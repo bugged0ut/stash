@@ -30,9 +30,28 @@ export interface ILightboxImage {
   title?: GQL.Maybe<string>;
   rating100?: GQL.Maybe<number>;
   o_counter?: GQL.Maybe<number>;
+  organized?: boolean | null;
   paths: IImagePaths;
   visual_files?: IFiles[];
   galleries?: GQL.Maybe<IGallery[]>;
+  studio?: {
+    id: string;
+    name: string;
+    aliases?: string[] | null;
+    image_path?: string | null;
+  } | null;
+  tags?: { id: string; name: string }[] | null;
+  performers?:
+    | {
+        id: string;
+        name?: string | null;
+        alias_list?: string[] | null;
+        disambiguation?: string | null;
+        image_path?: string | null;
+        birthdate?: string | null;
+        death_date?: string | null;
+      }[]
+    | null;
 }
 
 export interface IChapter {

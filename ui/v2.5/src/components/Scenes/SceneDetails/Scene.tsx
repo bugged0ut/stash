@@ -14,6 +14,9 @@ import {
   mutateMetadataScan,
   useFindScene,
   useSceneIncrementO,
+  useSceneDecrementO,
+  useSceneResetO,
+  useSceneMarkerCreate,
   useSceneGenerateScreenshot,
   useSceneUpdate,
   queryFindScenes,
@@ -36,6 +39,8 @@ import {
   getAbLoopPlugin,
   getPlayerPosition,
 } from "src/components/ScenePlayer/util";
+import { useMediaQuery } from "src/utils/screen";
+import { MediaQuickEditSheet } from "src/components/Shared/MediaQuickEditSheet";
 import {
   faEllipsisV,
   faChevronRight,
@@ -154,6 +159,9 @@ interface IProps {
   collapsed: boolean;
   setCollapsed: (state: boolean) => void;
   setContinuePlaylist: (value: boolean) => void;
+  narrow: boolean;
+  stageMode: "view" | "edit";
+  setStageMode: (mode: "view" | "edit") => void;
 }
 
 interface ISceneParams {
@@ -183,6 +191,9 @@ const ScenePage: React.FC<IProps> = PatchComponent("ScenePage", (props) => {
     collapsed,
     setCollapsed,
     setContinuePlaylist,
+    narrow,
+    stageMode,
+    setStageMode,
   } = props;
 
   const Toast = useToast();
@@ -197,6 +208,9 @@ const ScenePage: React.FC<IProps> = PatchComponent("ScenePage", (props) => {
   const boxes = configuration?.general?.stashBoxes ?? [];
 
   const [incrementO] = useSceneIncrementO(scene.id);
+  const [decrementO] = useSceneDecrementO(scene.id);
+  const [resetO] = useSceneResetO(scene.id);
+  const [createMarker] = useSceneMarkerCreate();
 
   const [incrementPlay] = useSceneIncrementPlayCount();
 
@@ -223,6 +237,37 @@ const ScenePage: React.FC<IProps> = PatchComponent("ScenePage", (props) => {
       Toast.error(e);
     }
   };
+
+  const onDecrementOClick = async () => {
+    try {
+      await decrementO();
+    } catch (e) {
+      Toast.error(e);
+    }
+  };
+
+  const onResetOClick = async () => {
+    try {
+      await resetO();
+    } catch (e) {
+      Toast.error(e);
+    }
+  };
+
+  async function saveQuiet(patch: Omit<GQL.SceneUpdateInput, "id">) {
+    try {
+      await updateScene({
+        variables: {
+          input: {
+            id: scene.id,
+            ...patch,
+          },
+        },
+      });
+    } catch (e) {
+      Toast.error(e);
+    }
+  }
 
   function setRating(v: number | null) {
     updateScene({
@@ -668,6 +713,78 @@ const ScenePage: React.FC<IProps> = PatchComponent("ScenePage", (props) => {
       <Helmet>
         <title>{title}</title>
       </Helmet>
+      {narrow && stageMode === "view" ? (
+        <div className="media-stage-title">
+          <Button className="minimal" onClick={() => history.goBack()}>
+            <Icon icon={faChevronLeft} />
+          </Button>
+          <span className="media-stage-title-text">{title}</span>
+          <ExternalPlayerButton scene={scene} />
+          <ViewCountButton
+            value={scene.play_count ?? 0}
+            onIncrement={() => incrementPlayCount()}
+          />
+        </div>
+      ) : null}
+      {narrow ? (
+        <MediaQuickEditSheet
+          rating100={scene.rating100}
+          onSetRating={setRating}
+          organized={scene.organized}
+          organizedLoading={organizedLoading}
+          onToggleOrganized={() => {
+            void onOrganizedClick();
+          }}
+          oCounter={scene.o_counter ?? 0}
+          onIncrementO={onIncrementOClick}
+          onDecrementO={onDecrementOClick}
+          onResetO={onResetOClick}
+          performers={scene.performers ?? []}
+          onPerformersChange={(ids) => {
+            void saveQuiet({ performer_ids: ids });
+          }}
+          tags={scene.tags ?? []}
+          onTagsChange={(ids) => {
+            void saveQuiet({ tag_ids: ids });
+          }}
+          studio={scene.studio ?? null}
+          onStudioChange={(studioId) => {
+            void saveQuiet({ studio_id: studioId });
+          }}
+          onCreateMarker={async (primaryTagId) => {
+            try {
+              await createMarker({
+                variables: {
+                  scene_id: scene.id,
+                  title: "",
+                  seconds: Math.round(getPlayerPosition() ?? 0),
+                  end_seconds: null,
+                  primary_tag_id: primaryTagId,
+                  tag_ids: [],
+                },
+              });
+              Toast.success(
+                intl.formatMessage({ id: "actions.create_marker" })
+              );
+            } catch (e) {
+              Toast.error(e);
+            }
+          }}
+          showingViewer={stageMode === "view"}
+          onEditDetails={() => {
+            setStageMode("edit");
+            setActiveTabKey("scene-edit-panel");
+            window.setTimeout(() => {
+              document.getElementById("scene-edit-details")?.scrollIntoView({
+                behavior: "smooth",
+                block: "start",
+              });
+            }, 50);
+          }}
+          onShowViewer={() => setStageMode("view")}
+          menu={renderOperations()}
+        />
+      ) : null}
       {maybeRenderSceneGenerateDialog()}
       {maybeRenderMergeDialog()}
       {maybeRenderDeleteDialog()}
@@ -696,7 +813,7 @@ const ScenePage: React.FC<IProps> = PatchComponent("ScenePage", (props) => {
           </div>
 
           <div className="scene-toolbar">
-            <span className="scene-toolbar-group">
+            <span className="scene-toolbar-group toolbar-desktop-only">
               <RatingSystem
                 value={scene.rating100}
                 onSetRating={setRating}
@@ -714,20 +831,20 @@ const ScenePage: React.FC<IProps> = PatchComponent("ScenePage", (props) => {
                   onIncrement={() => incrementPlayCount()}
                 />
               </span>
-              <span>
+              <span className="toolbar-desktop-only">
                 <OCounterButton
                   value={scene.o_counter ?? 0}
                   onIncrement={() => onIncrementOClick()}
                 />
               </span>
-              <span>
+              <span className="toolbar-desktop-only">
                 <OrganizedButton
                   loading={organizedLoading}
                   organized={scene.organized}
                   onClick={onOrganizedClick}
                 />
               </span>
-              <span>{renderOperations()}</span>
+              <span className="toolbar-desktop-only">{renderOperations()}</span>
             </span>
           </div>
         </div>
@@ -788,6 +905,9 @@ const SceneLoader: React.FC<RouteComponentProps<ISceneParams>> = ({
   const [queueScenes, setQueueScenes] = useState<QueuedScene[]>([]);
 
   const [collapsed, setCollapsed] = useState(false);
+  const narrow = useMediaQuery("(max-width: 1199px)");
+  const [stageMode, setStageMode] = useState<"view" | "edit">("view");
+  const [chromeOn, setChromeOn] = useState(true);
   const [continuePlaylist, setContinuePlaylist] = useState(queryContinue);
   const [hideScrubber, setHideScrubber] = useState(
     !(configuration?.interface.showScrubber ?? true)
@@ -833,6 +953,20 @@ const SceneLoader: React.FC<RouteComponentProps<ISceneParams>> = ({
       Mousetrap.unbind(".");
     };
   }, []);
+
+  useEffect(() => {
+    setStageMode("view");
+    setChromeOn(true);
+  }, [id]);
+
+  useEffect(() => {
+    const viewing = narrow && stageMode === "view";
+    document.body.classList.toggle("media-stage-view", viewing);
+    document.body.classList.toggle("media-chrome-on", viewing && chromeOn);
+    return () => {
+      document.body.classList.remove("media-stage-view", "media-chrome-on");
+    };
+  }, [narrow, stageMode, chromeOn]);
 
   async function getQueueFilterScenes(filter: ListFilterModel) {
     const query = await queryFindScenes(filter);
@@ -1034,9 +1168,15 @@ const SceneLoader: React.FC<RouteComponentProps<ISceneParams>> = ({
         collapsed={collapsed}
         setCollapsed={setCollapsed}
         setContinuePlaylist={setContinuePlaylist}
+        narrow={narrow}
+        stageMode={stageMode}
+        setStageMode={setStageMode}
       />
       <div
-        className={`scene-player-container ${collapsed ? "expanded" : ""}`}
+        className={cx("scene-player-container", {
+          expanded: collapsed,
+          "media-stage-view": narrow && stageMode === "view",
+        })}
       >
         <ScenePlayer
           key="ScenePlayer"
@@ -1049,6 +1189,9 @@ const SceneLoader: React.FC<RouteComponentProps<ISceneParams>> = ({
           onComplete={onComplete}
           onNext={() => queueNext(true)}
           onPrevious={() => queuePrevious(true)}
+          mobileStage={narrow}
+          chromeVisible={chromeOn}
+          onChromeChange={setChromeOn}
         />
         {hasPrevScene && (
           <Button

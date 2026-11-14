@@ -47,6 +47,8 @@ import {
   faImages,
 } from "@fortawesome/free-solid-svg-icons";
 import { RatingSystem } from "src/components/Shared/Rating/RatingSystem";
+import { MediaQuickEditSheet } from "src/components/Shared/MediaQuickEditSheet";
+import { useMediaQuery } from "src/utils/screen";
 import { useDebounce } from "../debounce";
 import { isVideo } from "src/utils/visualFile";
 import { imageTitle } from "src/core/files";
@@ -128,6 +130,11 @@ export const LightboxComponent: React.FC<IProps> = ({
   const oldImages = useRef<ILightboxImage[]>([]);
 
   const [zoom, setZoom] = useState(1);
+  const [cover, setCover] = useState(false);
+  const [chromeVisible, setChromeVisible] = useState(true);
+  const [sheetExpanded, setSheetExpanded] = useState(false);
+  const [organizedLoading, setOrganizedLoading] = useState(false);
+  const narrow = useMediaQuery("(max-width: 1199px)");
 
   function updateZoom(v: number) {
     if (v < MIN_ZOOM) {
@@ -901,6 +908,14 @@ export const LightboxComponent: React.FC<IProps> = ({
                     displayMode={displayMode}
                     scaleUp={scaleUp}
                     scrollMode={scrollMode}
+                    cover={cover && !isVideo(image.visual_files?.[0] ?? {})}
+                    onToggleCover={() => {
+                      if (isVideo(image.visual_files?.[0] ?? {})) return;
+                      setCover((value) => !value);
+                      setZoom(1);
+                      setResetPosition((value) => !value);
+                    }}
+                    onToggleChrome={() => setChromeVisible((value) => !value)}
                     resetPosition={resetPosition}
                     zoom={i === currentIndex ? zoom : 1}
                     scrollAttemptsBeforeChange={scrollAttemptsBeforeChange}
@@ -994,6 +1009,74 @@ export const LightboxComponent: React.FC<IProps> = ({
           </div>
           <div className={CLASSNAME_FOOTER_RIGHT}></div>
         </div>
+        {narrow && currentImage?.id ? (
+          <MediaQuickEditSheet
+            placement="absolute"
+            rating100={currentImage.rating100}
+            onSetRating={setRating}
+            organized={!!currentImage.organized}
+            organizedLoading={organizedLoading}
+            onToggleOrganized={() => {
+              void (async () => {
+                setOrganizedLoading(true);
+                try {
+                  await updateImage({
+                    variables: {
+                      input: {
+                        id: currentImage.id!,
+                        organized: !currentImage.organized,
+                      },
+                    },
+                  });
+                } catch (e) {
+                  Toast.error(e);
+                } finally {
+                  setOrganizedLoading(false);
+                }
+              })();
+            }}
+            oCounter={currentImage.o_counter ?? 0}
+            onIncrementO={onIncrementClick}
+            onDecrementO={onDecrementClick}
+            onResetO={onResetClick}
+            performers={currentImage.performers ?? []}
+            onPerformersChange={(ids) => {
+              void updateImage({
+                variables: {
+                  input: { id: currentImage.id!, performer_ids: ids },
+                },
+              }).catch((e) => Toast.error(e));
+            }}
+            tags={currentImage.tags ?? []}
+            onTagsChange={(ids) => {
+              void updateImage({
+                variables: {
+                  input: { id: currentImage.id!, tag_ids: ids },
+                },
+              }).catch((e) => Toast.error(e));
+            }}
+            studio={currentImage.studio ?? null}
+            onStudioChange={(studioId) => {
+              void updateImage({
+                variables: {
+                  input: { id: currentImage.id!, studio_id: studioId },
+                },
+              }).catch((e) => Toast.error(e));
+            }}
+            onExpandedChange={setSheetExpanded}
+            extra={
+              currentImage.galleries?.length ? (
+                <Link
+                  className="image-gallery-link"
+                  to={`/galleries/${currentImage.galleries[0].id}`}
+                  onClick={() => close()}
+                >
+                  <Icon icon={faImages} />
+                </Link>
+              ) : undefined
+            }
+          />
+        ) : null}
       </>
     );
   }
@@ -1004,7 +1087,10 @@ export const LightboxComponent: React.FC<IProps> = ({
 
   return (
     <div
-      className={CLASSNAME}
+      className={cx(CLASSNAME, {
+        "chrome-hidden": narrow && !chromeVisible,
+        "sheet-open": sheetExpanded,
+      })}
       role="presentation"
       ref={containerRef}
       onClick={handleClose}

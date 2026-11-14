@@ -18,12 +18,22 @@ function calculateDefaultZoom(
   boundWidth: number,
   boundHeight: number,
   displayMode: GQL.ImageLightboxDisplayMode,
-  scaleUp: boolean
+  scaleUp: boolean,
+  cover: boolean
 ) {
   // set initial zoom level based on options
   let xZoom: number;
   let yZoom: number;
   let newZoom = 1;
+  if (cover) {
+    xZoom = boundWidth / width;
+    yZoom = boundHeight / height;
+    if (!scaleUp) {
+      xZoom = Math.min(xZoom, 1);
+      yZoom = Math.min(yZoom, 1);
+    }
+    return Math.max(xZoom, yZoom);
+  }
   switch (displayMode) {
     case GQL.ImageLightboxDisplayMode.FitXy:
       xZoom = boundWidth / width;
@@ -57,6 +67,9 @@ interface IProps {
   displayMode: GQL.ImageLightboxDisplayMode;
   scaleUp: boolean;
   scrollMode: GQL.ImageLightboxScrollMode;
+  cover?: boolean;
+  onToggleCover?: () => void;
+  onToggleChrome?: () => void;
   resetPosition?: boolean;
   zoom: number;
   scrollAttemptsBeforeChange: number;
@@ -81,6 +94,9 @@ export const LightboxImage: React.FC<IProps> = ({
   displayMode,
   scaleUp,
   scrollMode,
+  cover = false,
+  onToggleCover,
+  onToggleChrome,
   resetPosition,
   zoom,
   scrollAttemptsBeforeChange,
@@ -113,6 +129,9 @@ export const LightboxImage: React.FC<IProps> = ({
   const prevDiff = useRef<number | undefined>();
 
   const scrollAttempts = useRef(0);
+  const tapStart = useRef<{ x: number; y: number } | null>(null);
+  const lastTap = useRef(0);
+  const tapTimer = useRef<number>();
 
   useEffect(() => {
     const box = container.current;
@@ -194,7 +213,7 @@ export const LightboxImage: React.FC<IProps> = ({
       const newPositionX = Math.min((boxWidth - imageWidth) / 2, 0);
       let newPositionY: number;
 
-      if (displayMode === GQL.ImageLightboxDisplayMode.FitXy) {
+      if (displayMode === GQL.ImageLightboxDisplayMode.FitXy || cover) {
         newPositionY = Math.min((boxHeight - imageHeight) / 2, 0);
       } else {
         // otherwise, align image with container
@@ -210,6 +229,7 @@ export const LightboxImage: React.FC<IProps> = ({
     },
     [
       displayMode,
+      cover,
       boxWidth,
       imageWidth,
       boxHeight,
@@ -225,7 +245,12 @@ export const LightboxImage: React.FC<IProps> = ({
       return;
     }
 
-    if (!scaleUp && imageWidth < boxWidth && imageHeight < boxHeight) {
+    if (
+      !cover &&
+      !scaleUp &&
+      imageWidth < boxWidth &&
+      imageHeight < boxHeight
+    ) {
       setDefaultZoom(1);
       setPositionX(0);
       setPositionY(0);
@@ -239,7 +264,8 @@ export const LightboxImage: React.FC<IProps> = ({
       boxWidth,
       boxHeight,
       displayMode,
-      scaleUp
+      scaleUp,
+      cover
     );
 
     setDefaultZoom(newZoom);
@@ -261,6 +287,7 @@ export const LightboxImage: React.FC<IProps> = ({
     boxHeight,
     displayMode,
     scaleUp,
+    cover,
     alignBottom,
     calculateInitialPosition,
     scrollAttemptsBeforeChange,
@@ -545,6 +572,35 @@ export const LightboxImage: React.FC<IProps> = ({
 
   const ImageView = isVideo ? "video" : "img";
 
+  function onMediaPointerDown(event: React.PointerEvent) {
+    if (isVideo || !current) return;
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+    tapStart.current = { x: event.clientX, y: event.clientY };
+  }
+
+  function onMediaPointerUp(event: React.PointerEvent) {
+    if (isVideo || !current) return;
+    const start = tapStart.current;
+    tapStart.current = null;
+    if (!start) return;
+    const dx = event.clientX - start.x;
+    const dy = event.clientY - start.y;
+    if (dx * dx + dy * dy > 144) return;
+
+    const now = Date.now();
+    if (now - lastTap.current < 300) {
+      window.clearTimeout(tapTimer.current);
+      lastTap.current = 0;
+      onToggleCover?.();
+      return;
+    }
+
+    lastTap.current = now;
+    tapTimer.current = window.setTimeout(() => {
+      onToggleChrome?.();
+    }, 280);
+  }
+
   return (
     <div
       ref={container}
@@ -573,8 +629,14 @@ export const LightboxImage: React.FC<IProps> = ({
             onMouseMove={onImageMouseOver}
             onTouchStart={onTouchStart}
             onTouchMove={onTouchMove}
-            onPointerDown={onPointerDown}
-            onPointerUp={onPointerUp}
+            onPointerDown={(event) => {
+              onPointerDown(event);
+              onMediaPointerDown(event);
+            }}
+            onPointerUp={(event) => {
+              onPointerUp(event);
+              onMediaPointerUp(event);
+            }}
             onPointerMove={onPointerMove}
           />
         </picture>

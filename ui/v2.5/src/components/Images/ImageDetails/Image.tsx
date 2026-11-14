@@ -28,6 +28,7 @@ import {
   faEllipsisV,
   faChevronLeft,
   faChevronRight,
+  faExpand,
 } from "@fortawesome/free-solid-svg-icons";
 import { imagePath, imageTitle } from "src/core/files";
 import { isVideo } from "src/utils/visualFile";
@@ -42,6 +43,9 @@ import { goBackOrReplace } from "src/utils/history";
 import { FormattedDate } from "src/components/Shared/Date";
 import { GenerateDialog } from "src/components/Dialogs/GenerateDialog";
 import { StudioLogo } from "src/components/Shared/StudioLogo";
+import { useLightbox } from "src/hooks/Lightbox/hooks";
+import { useMediaQuery } from "src/utils/screen";
+import { MediaQuickEditSheet } from "src/components/Shared/MediaQuickEditSheet";
 
 interface IProps {
   image: GQL.ImageDataFragment;
@@ -86,6 +90,13 @@ const ImagePage: React.FC<IProps> = ({ image }) => {
 
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const swiped = React.useRef(false);
+  const narrow = useMediaQuery("(max-width: 1199px)");
+  const lightboxImages = React.useMemo(() => [image], [image]);
+  const showLightbox = useLightbox({
+    images: lightboxImages,
+    showNavigation: false,
+  });
 
   const minSwipeDistance = 50;
 
@@ -104,17 +115,48 @@ const ImagePage: React.FC<IProps> = ({ image }) => {
     const isLeftSwipe = distance > minSwipeDistance;
     const isRightSwipe = distance < -minSwipeDistance;
     if (isLeftSwipe && nextImageID) {
+      swiped.current = true;
       navigateToImage(nextImageID);
     } else if (isRightSwipe && prevImageID) {
+      swiped.current = true;
       navigateToImage(prevImageID);
     }
   };
+
+  function openLightbox() {
+    showLightbox({ initialIndex: 0 });
+  }
+
+  function onImageClick(event: React.MouseEvent) {
+    if (swiped.current) {
+      swiped.current = false;
+      return;
+    }
+    const target = event.target as HTMLElement;
+    if (target.closest(".image-nav-button, .image-open-viewer, video")) return;
+    openLightbox();
+  }
 
   const [incrementO] = useImageIncrementO(image.id);
   const [decrementO] = useImageDecrementO(image.id);
   const [resetO] = useImageResetO(image.id);
 
   const [updateImage] = useImageUpdate();
+
+  async function saveQuiet(patch: Omit<GQL.ImageUpdateInput, "id">) {
+    try {
+      await updateImage({
+        variables: {
+          input: {
+            id: image.id,
+            ...patch,
+          },
+        },
+      });
+    } catch (e) {
+      Toast.error(e);
+    }
+  }
 
   const [organizedLoading, setOrganizedLoading] = useState(false);
 
@@ -411,7 +453,7 @@ const ImagePage: React.FC<IProps> = ({ image }) => {
         </div>
 
         <div className="image-toolbar">
-          <span className="image-toolbar-group">
+          <span className="image-toolbar-group d-none d-xl-flex">
             <RatingSystem
               value={image.rating100}
               onSetRating={setRating}
@@ -420,7 +462,7 @@ const ImagePage: React.FC<IProps> = ({ image }) => {
             />
           </span>
           <span className="image-toolbar-group">
-            <span>
+            <span className="d-none d-xl-inline">
               <OCounterButton
                 value={image.o_counter || 0}
                 onIncrement={onIncrementClick}
@@ -428,14 +470,14 @@ const ImagePage: React.FC<IProps> = ({ image }) => {
                 onReset={onResetClick}
               />
             </span>
-            <span>
+            <span className="d-none d-xl-inline">
               <OrganizedButton
                 loading={organizedLoading}
                 organized={image.organized}
                 onClick={onOrganizedClick}
               />
             </span>
-            <span>{renderOperations()}</span>
+            <span className="d-none d-xl-inline">{renderOperations()}</span>
           </span>
         </div>
         {renderTabs()}
@@ -445,6 +487,7 @@ const ImagePage: React.FC<IProps> = ({ image }) => {
         onTouchStart={onTouchStart}
         onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
+        onClick={onImageClick}
       >
         {image.visual_files.length > 0 && (
           <ImageView
@@ -457,6 +500,54 @@ const ImagePage: React.FC<IProps> = ({ image }) => {
             src={image.paths.image ?? ""}
           />
         )}
+        <Button
+          className="image-open-viewer minimal"
+          onClick={openLightbox}
+          title={intl.formatMessage({
+            id: "actions.view_media",
+            defaultMessage: "View",
+          })}
+        >
+          <Icon icon={faExpand} />
+        </Button>
+        {narrow ? (
+          <MediaQuickEditSheet
+            rating100={image.rating100}
+            onSetRating={setRating}
+            organized={image.organized}
+            organizedLoading={organizedLoading}
+            onToggleOrganized={() => {
+              void onOrganizedClick();
+            }}
+            oCounter={image.o_counter ?? 0}
+            onIncrementO={onIncrementClick}
+            onDecrementO={onDecrementClick}
+            onResetO={onResetClick}
+            performers={image.performers ?? []}
+            onPerformersChange={(ids) => {
+              void saveQuiet({ performer_ids: ids });
+            }}
+            tags={image.tags ?? []}
+            onTagsChange={(ids) => {
+              void saveQuiet({ tag_ids: ids });
+            }}
+            studio={image.studio ?? null}
+            onStudioChange={(studioId) => {
+              void saveQuiet({ studio_id: studioId });
+            }}
+            onEditDetails={() => {
+              setActiveTabKey("image-edit-panel");
+              window.setTimeout(() => {
+                document.getElementById("image-edit-details")?.scrollIntoView({
+                  behavior: "smooth",
+                  block: "start",
+                });
+              }, 50);
+            }}
+            showingViewer
+            menu={renderOperations()}
+          />
+        ) : null}
         {prevImageID && (
           <Button
             className="image-nav-button prev minimal"

@@ -228,7 +228,58 @@ interface IScenePlayerProps {
   onComplete: () => void;
   onNext: () => void;
   onPrevious: () => void;
+  mobileStage?: boolean;
+  chromeVisible?: boolean;
+  onChromeChange?: (visible: boolean) => void;
 }
+
+const PlayerProgress: React.FC<{
+  time: number;
+  duration: number;
+  onSeek: (seconds: number) => void;
+  onScrubStart: () => void;
+  onScrubEnd: () => void;
+}> = ({ time, duration, onSeek, onScrubStart, onScrubEnd }) => {
+  const barRef = useRef<HTMLDivElement>(null);
+
+  function seek(clientX: number) {
+    const el = barRef.current;
+    if (!el || !duration) return;
+    const rect = el.getBoundingClientRect();
+    const ratio = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
+    onSeek(ratio * duration);
+  }
+
+  return (
+    <div
+      className="player-progress"
+      ref={barRef}
+      onPointerDown={(event) => {
+        event.currentTarget.setPointerCapture(event.pointerId);
+        onScrubStart();
+        seek(event.clientX);
+      }}
+      onPointerMove={(event) => {
+        if (!event.currentTarget.hasPointerCapture(event.pointerId)) return;
+        seek(event.clientX);
+      }}
+      onPointerUp={(event) => {
+        if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+          event.currentTarget.releasePointerCapture(event.pointerId);
+        }
+        onScrubEnd();
+      }}
+      onPointerCancel={onScrubEnd}
+    >
+      <div className="player-progress-track">
+        <div
+          className="player-progress-fill"
+          style={{ width: `${duration ? (time / duration) * 100 : 0}%` }}
+        />
+      </div>
+    </div>
+  );
+};
 
 export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
   "ScenePlayer",
@@ -242,6 +293,9 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
     onComplete,
     onNext,
     onPrevious,
+    mobileStage = false,
+    chromeVisible = false,
+    onChromeChange,
   }) => {
     const { configuration } = useConfigurationContext();
     const interfaceConfig = configuration?.interface;
@@ -266,6 +320,9 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
 
     const [fullscreen, setFullscreen] = useState(false);
     const [showScrubber, setShowScrubber] = useState(false);
+    const [scrubbing, setScrubbing] = useState(false);
+    const onChromeChangeRef = useRef(onChromeChange);
+    onChromeChangeRef.current = onChromeChange;
 
     const started = useRef(false);
     const auto = useRef(false);
@@ -306,6 +363,11 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
         return;
       }
 
+      if (mobileStage) {
+        setShowScrubber(true);
+        return;
+      }
+
       const onResize = () => {
         const show = window.innerHeight >= 450 && !ScreenUtils.isMobile();
         setShowScrubber(show);
@@ -315,7 +377,22 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
       window.addEventListener("resize", onResize);
 
       return () => window.removeEventListener("resize", onResize);
-    }, [hideScrubberOverride, fullscreen]);
+    }, [hideScrubberOverride, fullscreen, mobileStage]);
+
+    useEffect(() => {
+      const player = getPlayer();
+      if (!player || !mobileStage) return;
+
+      const showChrome = () => onChromeChangeRef.current?.(true);
+      const hideChrome = () => onChromeChangeRef.current?.(false);
+      player.on("useractive", showChrome);
+      player.on("userinactive", hideChrome);
+
+      return () => {
+        player.off("useractive", showChrome);
+        player.off("userinactive", hideChrome);
+      };
+    }, [getPlayer, mobileStage, ready]);
 
     useEffect(() => {
       sendSetTimestamp((value: number) => {
@@ -953,6 +1030,15 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
       }
     }
 
+    function previewSeek(seconds: number) {
+      const player = getPlayer();
+      if (started.current && player) {
+        player.currentTime(seconds);
+      } else {
+        setTime(seconds);
+      }
+    }
+
     // Override spacebar to always pause/play
     function onKeyDown(this: HTMLDivElement, event: KeyboardEvent) {
       const player = getPlayer();
@@ -974,26 +1060,52 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
 
     const isPortrait =
       file && file.height && file.width && file.height > file.width;
+    const aspect =
+      file?.width && file?.height ? file.width / file.height : 16 / 9;
+    const showFilmstrip =
+      showScrubber && (!mobileStage || chromeVisible || scrubbing);
+    const showProgress = showScrubber && mobileStage && !chromeVisible;
 
     return (
       <div
         className={cx("VideoPlayer", {
           portrait: isPortrait,
           "no-file": !file,
+          "mobile-stage": mobileStage,
         })}
+        style={{ ["--video-aspect" as string]: String(aspect) }}
         onKeyDownCapture={onKeyDown}
+        onClick={(event) => {
+          if (!mobileStage || event.target !== event.currentTarget) return;
+          onChromeChange?.(!chromeVisible);
+        }}
       >
         <div className="video-wrapper" ref={videoRef} />
         {scene.interactive &&
           (interactiveState !== ConnectionState.Ready ||
             getPlayer()?.paused()) && <SceneInteractiveStatus />}
-        {file && showScrubber && (
+        {file && showFilmstrip && (
           <ScenePlayerScrubber
             file={file}
             scene={scene}
             time={time}
             onSeek={onScrubberSeek}
             onScroll={onScrubberScroll}
+          />
+        )}
+        {file && showProgress && (
+          <PlayerProgress
+            time={time}
+            duration={file.duration ?? 0}
+            onSeek={previewSeek}
+            onScrubStart={() => {
+              setScrubbing(true);
+              onScrubberScroll();
+            }}
+            onScrubEnd={() => {
+              setScrubbing(false);
+              onScrubberSeek(getPlayer()?.currentTime() ?? time);
+            }}
           />
         )}
       </div>

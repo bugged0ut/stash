@@ -195,7 +195,7 @@ export const ScenePlayerScrubber: React.FC<IScenePlayerScrubberProps> = ({
   }, [file.duration, setPosition, time, width, scrubWidth]);
 
   const onMouseUp = useCallback(
-    (event: MouseEvent) => {
+    (event: PointerEvent) => {
       if (!mouseDown.current) return;
       const slider = sliderEl.current!;
 
@@ -228,11 +228,12 @@ export const ScenePlayerScrubber: React.FC<IScenePlayerScrubberProps> = ({
     [setPosition]
   );
 
-  const onMouseDown = useCallback((event: MouseEvent) => {
-    // Only if left mouse button pressed
+  const onMouseDown = useCallback((event: PointerEvent) => {
+    // Only if left mouse button pressed. Touch reports button 0.
     if (event.button !== 0) return;
 
     event.preventDefault();
+    contentEl.current?.setPointerCapture(event.pointerId);
 
     mouseDown.current = true;
     lastMouseEvent.current = event;
@@ -241,7 +242,7 @@ export const ScenePlayerScrubber: React.FC<IScenePlayerScrubberProps> = ({
   }, []);
 
   const onMouseMove = useCallback(
-    (event: MouseEvent) => {
+    (event: PointerEvent) => {
       if (!mouseDown.current) return;
 
       // negative dragging right (past), positive left (future)
@@ -272,14 +273,16 @@ export const ScenePlayerScrubber: React.FC<IScenePlayerScrubberProps> = ({
   useEffect(() => {
     const content = contentEl.current!;
 
-    content.addEventListener("mousedown", onMouseDown, false);
-    content.addEventListener("mousemove", onMouseMove, false);
-    window.addEventListener("mouseup", onMouseUp, false);
+    content.addEventListener("pointerdown", onMouseDown, false);
+    content.addEventListener("pointermove", onMouseMove, false);
+    content.addEventListener("pointerup", onMouseUp, false);
+    content.addEventListener("pointercancel", onMouseUp, false);
 
     return () => {
-      content.removeEventListener("mousedown", onMouseDown);
-      content.removeEventListener("mousemove", onMouseMove);
-      window.removeEventListener("mouseup", onMouseUp);
+      content.removeEventListener("pointerdown", onMouseDown);
+      content.removeEventListener("pointermove", onMouseMove);
+      content.removeEventListener("pointerup", onMouseUp);
+      content.removeEventListener("pointercancel", onMouseUp);
     };
   }, [onMouseDown, onMouseMove, onMouseUp]);
 

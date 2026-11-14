@@ -149,6 +149,12 @@
   }
 }
 
+@media (max-width: 1199px) {
+  .scene-toolbar .toolbar-desktop-only {
+    display: none;
+  }
+}
+
 #scene-details-container {
   .tab-content {
     min-height: 15rem;

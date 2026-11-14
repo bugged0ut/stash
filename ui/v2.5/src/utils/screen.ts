@@ -11,7 +11,9 @@ function matchesMediaQuery(query: string) {
 
 // from: https://dev.to/salimzade/handle-media-query-in-react-with-hooks-3cp3
 export const useMediaQuery = (query: string): boolean => {
-  const [matches, setMatches] = useState<boolean>(false);
+  const [matches, setMatches] = useState<boolean>(() =>
+    typeof window !== "undefined" ? window.matchMedia(query).matches : false
+  );
 
   useEffect(() => {
     const media = window.matchMedia(query);

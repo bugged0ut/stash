@@ -46,6 +46,10 @@ $sceneTabWidth: 450px;
   position: absolute;
   width: 100%;
 
+  .vjs-tech {
+    object-fit: contain;
+  }
+
   &:not(.vjs-has-started) .vjs-control-bar {
     display: flex;
   }
@@ -524,6 +528,7 @@ $sceneTabWidth: 450px;
   overflow: hidden;
   -webkit-overflow-scrolling: touch;
   position: relative;
+  touch-action: none;
   -webkit-user-select: none;
   user-select: none;
 
@@ -701,6 +706,83 @@ $sceneTabWidth: 450px;
     &.expanded {
       flex: 0 0 calc(100% - 15px);
       max-width: calc(100% - 15px);
+    }
+  }
+}
+
+.player-progress {
+  align-items: center;
+  display: flex;
+  flex-shrink: 0;
+  height: 1.75rem;
+  padding: 0 0.75rem;
+  touch-action: none;
+  width: 100%;
+}
+
+.player-progress-track {
+  background: rgba(255, 255, 255, 0.35);
+  height: 4px;
+  position: relative;
+  width: 100%;
+}
+
+.player-progress-fill {
+  background: #fff;
+  bottom: 0;
+  left: 0;
+  position: absolute;
+  top: 0;
+}
+
+@media (max-width: 1199px) {
+  .VideoPlayer.mobile-stage {
+    align-items: center;
+    background: #000;
+    max-height: none;
+
+    &.portrait .video-wrapper,
+    .video-wrapper {
+      aspect-ratio: var(--video-aspect, 1.778);
+      height: auto;
+      margin-left: auto;
+      margin-right: auto;
+      max-height: calc(100dvh - 12rem);
+      width: min(100%, calc((100dvh - 12rem) * var(--video-aspect, 1.778)));
+    }
+  }
+
+  .scene-player-container.media-stage-view {
+    align-items: center;
+    background: #000;
+    bottom: 0;
+    display: flex;
+    justify-content: center;
+    left: 0;
+    max-width: 100%;
+    padding: 0;
+    position: fixed;
+    right: 0;
+    top: 0;
+    width: 100%;
+    z-index: 1020;
+
+    .VideoPlayer.mobile-stage {
+      height: 100%;
+      justify-content: center;
+      width: 100%;
+
+      &.portrait .video-wrapper,
+      .video-wrapper {
+        max-height: calc(100dvh - 5rem - env(safe-area-inset-bottom));
+        width: min(
+          100%,
+          calc(
+            (100dvh - 5rem - env(safe-area-inset-bottom)) *
+              var(--video-aspect, 1.778)
+          )
+        );
+      }
     }
   }
 }

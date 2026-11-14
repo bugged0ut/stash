@@ -64,6 +64,25 @@ body {
   }
 }
 
+body.media-stage-view {
+  overflow: hidden;
+
+  .scene-divider,
+  .scene-tabs {
+    display: none;
+  }
+}
+
+body.media-stage-view:not(.media-chrome-on) {
+  padding-bottom: 0;
+  padding-top: 0;
+
+  .top-nav {
+    pointer-events: none;
+    visibility: hidden;
+  }
+}
+
 .main {
   @include media-breakpoint-up(sm) {
     padding-top: 0.5rem;

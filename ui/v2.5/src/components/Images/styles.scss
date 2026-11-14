@@ -252,6 +252,13 @@ $imageTabWidth: 450px;
   position: sticky;
   top: 4rem;
 
+  .image-open-viewer {
+    position: absolute;
+    right: 0.75rem;
+    top: 0.75rem;
+    z-index: 11;
+  }
+
   .image-nav-button {
     background: none;
     border: none;
@@ -287,5 +294,35 @@ $imageTabWidth: 450px;
     svg {
       margin: auto;
     }
+  }
+}
+
+@media (max-width: 1199px) {
+  .image-toolbar {
+    display: none;
+  }
+
+  .image-container {
+    align-items: center;
+    background: #000;
+    height: calc(100dvh - #{$navbar-height} - 6.5rem);
+    max-height: calc(100dvh - #{$navbar-height} - 6.5rem);
+    position: relative;
+    top: auto;
+
+    img,
+    video {
+      height: auto;
+      max-height: 100%;
+      max-width: 100%;
+      object-fit: contain;
+      width: auto;
+    }
+  }
+}
+@media (max-width: 575.98px) and (orientation: portrait) {
+  .image-container {
+    height: calc(100dvh - #{$navbar-height} - 6.5rem);
+    max-height: calc(100dvh - #{$navbar-height} - 6.5rem);
   }
 }
