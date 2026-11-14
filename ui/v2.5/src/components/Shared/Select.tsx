@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from "react";
+import cx from "classnames";
 import Select, {
   OnChangeValue,
   StylesConfig,
@@ -28,6 +29,12 @@ import { StudioIDSelect } from "../Studios/StudioSelect";
 import { GalleryIDSelect } from "../Galleries/GallerySelect";
 import { GroupIDSelect } from "../Groups/GroupSelect";
 import { SceneIDSelect } from "../Scenes/SceneSelect";
+import {
+  QuietInput,
+  QuietSelectContext,
+  QuietTypeToggle,
+  useQuietSelect,
+} from "./FilterSelect";
 
 export type SelectObject = {
   id: string;
@@ -149,6 +156,7 @@ const LimitedSelectMenu = <T extends boolean>(
   }, [props.children, maxOptionsShown]);
   return (
     <reactSelectComponents.MenuList {...props}>
+      <QuietTypeToggle />
       {menuChildren}
       {hiddenCount > 0 && (
         <div style={hiddenCountStyle}>{hiddenCount} Options Hidden</div>
@@ -181,6 +189,7 @@ const SelectComponent = <T extends boolean>({
   closeMenuOnSelect = true,
   noOptionsMessage = type !== "tags" ? "None" : null,
 }: ISelectProps<T> & ITypeProps) => {
+  const quiet = useQuietSelect(isDisabled);
   const values = items.filter((item) => initialIds?.indexOf(item.value) !== -1);
   const defaultValue = (isMulti ? values : values[0] ?? null) as OnChangeValue<
     Option,
@@ -232,14 +241,18 @@ const SelectComponent = <T extends boolean>({
     menuPortalTarget,
     components: {
       ...components,
+      Input: QuietInput,
       MenuList: LimitedSelectMenu,
       IndicatorSeparator: () => null,
       ...((!showDropdown || isDisabled) && { DropdownIndicator: () => null }),
       ...(isDisabled && { MultiValueRemove: () => null }),
     },
+    menuIsOpen: quiet.menuIsOpen,
+    onMenuOpen: quiet.onMenuOpen,
+    onMenuClose: quiet.onMenuClose,
   };
 
-  return creatable ? (
+  const select = creatable ? (
     <CreatableSelect
       {...props}
       isDisabled={isLoading || isDisabled}
@@ -247,6 +260,21 @@ const SelectComponent = <T extends boolean>({
     />
   ) : (
     <Select {...props} />
+  );
+
+  return (
+    <QuietSelectContext.Provider value={quiet.api}>
+      <div
+        className={cx("react-select-anchor", quiet.picking && "is-picking")}
+        ref={quiet.anchorRef}
+        onPointerDownCapture={quiet.onPointerDownCapture}
+        onMouseDownCapture={quiet.blockControlFocus}
+        onTouchEndCapture={quiet.blockControlFocus}
+        onClickCapture={quiet.blockControlFocus}
+      >
+        {select}
+      </div>
+    </QuietSelectContext.Provider>
   );
 };
 

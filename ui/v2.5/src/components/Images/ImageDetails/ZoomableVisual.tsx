@@ -8,7 +8,6 @@ interface IProps {
   src: string;
   alt: string;
   video: boolean;
-  onOpen: () => void;
   onNext: () => void;
   onPrev: () => void;
 }
@@ -19,7 +18,6 @@ export const ZoomableVisual: React.FC<IProps> = ({
   src,
   alt,
   video,
-  onOpen,
   onNext,
   onPrev,
 }) => {
@@ -33,14 +31,11 @@ export const ZoomableVisual: React.FC<IProps> = ({
   zoomRef.current = zoom;
   panRef.current = pan;
 
-  const onOpenRef = useRef(onOpen);
   const onNextRef = useRef(onNext);
   const onPrevRef = useRef(onPrev);
-  onOpenRef.current = onOpen;
   onNextRef.current = onNext;
   onPrevRef.current = onPrev;
 
-  const suppressUntil = useRef(0);
   const setMedia = useCallback(
     (node: HTMLImageElement | HTMLVideoElement | null) => {
       mediaRef.current = node;
@@ -71,7 +66,6 @@ export const ZoomableVisual: React.FC<IProps> = ({
       y: number;
       panX: number;
       panY: number;
-      moved: boolean;
     } | null = null;
 
     function clamp(x: number, y: number, z: number) {
@@ -92,10 +86,6 @@ export const ZoomableVisual: React.FC<IProps> = ({
       const z = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, next));
       setZoom(z);
       setPan(clamp(x, y, z));
-    }
-
-    function suppressClick() {
-      suppressUntil.current = performance.now() + 700;
     }
 
     function onTouchStart(event: TouchEvent) {
@@ -151,7 +141,6 @@ export const ZoomableVisual: React.FC<IProps> = ({
       if (pinching) {
         pinching = false;
         pinchDist = 0;
-        suppressClick();
         start = null;
         return;
       }
@@ -160,15 +149,9 @@ export const ZoomableVisual: React.FC<IProps> = ({
         const dx = (touch?.clientX ?? start.x) - start.x;
         const dy = (touch?.clientY ?? start.y) - start.y;
         if (Math.abs(dx) >= SWIPE_DISTANCE && Math.abs(dx) > Math.abs(dy)) {
-          suppressClick();
           if (dx < 0) onNextRef.current();
           else onPrevRef.current();
         }
-      } else if (start && zoomRef.current > 1) {
-        const touch = event.changedTouches[0];
-        const dx = (touch?.clientX ?? start.x) - start.x;
-        const dy = (touch?.clientY ?? start.y) - start.y;
-        if (Math.hypot(dx, dy) > 8) suppressClick();
       }
       start = null;
     }
@@ -188,7 +171,6 @@ export const ZoomableVisual: React.FC<IProps> = ({
         y: event.clientY,
         panX: panRef.current.x,
         panY: panRef.current.y,
-        moved: false,
       };
     }
 
@@ -196,12 +178,10 @@ export const ZoomableVisual: React.FC<IProps> = ({
       if (!mouse) return;
       const dx = event.clientX - mouse.x;
       const dy = event.clientY - mouse.y;
-      if (Math.hypot(dx, dy) > 3) mouse.moved = true;
       setPan(clamp(mouse.panX + dx, mouse.panY + dy, zoomRef.current));
     }
 
     function onPointerUp() {
-      if (mouse?.moved) suppressClick();
       mouse = null;
     }
 
@@ -228,13 +208,6 @@ export const ZoomableVisual: React.FC<IProps> = ({
     };
   }, []);
 
-  function onClick(event: React.MouseEvent) {
-    if (performance.now() < suppressUntil.current) return;
-    if (zoom > 1) return;
-    if ((event.target as HTMLElement).closest("video")) return;
-    onOpen();
-  }
-
   const transform = `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`;
   const touchAction = zoom > 1 ? "none" : "pan-y";
 
@@ -248,7 +221,6 @@ export const ZoomableVisual: React.FC<IProps> = ({
     <div
       className="image-zoom-frame"
       ref={frameRef}
-      onClick={onClick}
       style={{ cursor: zoom > 1 ? "grab" : undefined, touchAction }}
     >
       {video ? (

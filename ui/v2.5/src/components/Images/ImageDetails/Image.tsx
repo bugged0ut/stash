@@ -532,7 +532,6 @@ const ImagePage: React.FC<IProps> = ({ image }) => {
             src={image.paths.image ?? ""}
             alt={title}
             video={videoFile}
-            onOpen={openLightbox}
             onNext={() => {
               void go(1);
             }}

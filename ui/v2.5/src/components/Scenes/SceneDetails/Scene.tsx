@@ -1122,6 +1122,12 @@ const SceneLoader: React.FC<RouteComponentProps<ISceneParams>> = ({
     loadScene(sceneID, autoPlayOnSelected, getScenePage(sceneID));
   }
 
+  const hasPrevScene =
+    currentQueueIndex > 0 || (currentQueueIndex === 0 && queueStart > 1);
+  const hasNextScene =
+    currentQueueIndex >= 0 &&
+    (currentQueueIndex < queueScenes.length - 1 || queueHasMoreScenes);
+
   if (!scene) {
     if (loading) return <LoadingIndicator />;
     if (error) return <ErrorMessage error={error.message} />;
@@ -1171,6 +1177,26 @@ const SceneLoader: React.FC<RouteComponentProps<ISceneParams>> = ({
           chromeVisible={chromeOn}
           onChromeChange={setChromeOn}
         />
+        {hasPrevScene ? (
+          <Button
+            className="scene-nav-button prev minimal"
+            onClick={() => {
+              void queuePrevious(true);
+            }}
+          >
+            <Icon icon={faChevronLeft} />
+          </Button>
+        ) : null}
+        {hasNextScene ? (
+          <Button
+            className="scene-nav-button next minimal"
+            onClick={() => {
+              void queueNext(true);
+            }}
+          >
+            <Icon icon={faChevronRight} />
+          </Button>
+        ) : null}
       </div>
     </div>
   );

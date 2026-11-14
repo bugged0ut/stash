@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import {
   components as ReactSelectComponents,
@@ -58,6 +58,223 @@ const getSelectedItems = <T,>(
   }
 };
 
+interface IQuietSelectApi {
+  coarse: boolean;
+  typing: boolean;
+  label: string;
+  beginTyping: (event: React.SyntheticEvent) => void;
+  blockInputFocus: (event: React.FocusEvent<HTMLInputElement>) => void;
+}
+
+export const QuietSelectContext = React.createContext<IQuietSelectApi | null>(
+  null
+);
+
+// A focused text input opens the phone keyboard. Keep the field unfocused
+// until "Type to search" so the suggestion list can use the screen.
+export function useQuietSelect(isDisabled = false, onMenuClose?: () => void) {
+  const intl = useIntl();
+  const touch = useMediaQuery("(pointer: coarse), (hover: none)");
+  const [typing, setTyping] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const anchorRef = useRef<HTMLDivElement>(null);
+  const liveRef = useRef({ coarse: touch, typing });
+  const disabledRef = useRef(isDisabled);
+  const ignoreCloseRef = useRef(false);
+  const onMenuCloseRef = useRef(onMenuClose);
+  liveRef.current.coarse = touch;
+  liveRef.current.typing = typing;
+  disabledRef.current = isDisabled;
+  onMenuCloseRef.current = onMenuClose;
+
+  const closeMenu = () => {
+    setMenuOpen(false);
+    liveRef.current.typing = false;
+    setTyping(false);
+    onMenuCloseRef.current?.();
+  };
+
+  useEffect(() => {
+    if (!touch || typing) return;
+
+    const onPointerDown = (event: PointerEvent) => {
+      if (!menuOpen) return;
+      const { target } = event;
+      if (!(target instanceof Element)) return;
+      if (target.closest(".react-select-type-toggle")) return;
+      if (target.closest(".react-select__menu")) return;
+      if (anchorRef.current?.contains(target)) return;
+      closeMenu();
+    };
+
+    // Tapping the open menu focuses the search field. Stop that while the
+    // field is not in typing mode so the keyboard stays closed. Clicks still
+    // select an option.
+    const stopMenuFocus = (event: Event) => {
+      const { target } = event;
+      if (!(target instanceof Element)) return;
+      if (target.closest(".react-select-type-toggle")) return;
+      const menu = target.closest(".react-select__menu");
+      if (!menu) return;
+      const listId = anchorRef.current
+        ?.querySelector("input")
+        ?.getAttribute("aria-controls");
+      const list = listId ? document.getElementById(listId) : null;
+      if (!list || !menu.contains(list)) return;
+      // preventDefault on touchend cancels the click that selects an option.
+      if (event.type !== "touchend") event.preventDefault();
+      event.stopPropagation();
+    };
+
+    document.addEventListener("pointerdown", onPointerDown, true);
+    document.addEventListener("mousedown", stopMenuFocus, true);
+    document.addEventListener("touchend", stopMenuFocus, true);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown, true);
+      document.removeEventListener("mousedown", stopMenuFocus, true);
+      document.removeEventListener("touchend", stopMenuFocus, true);
+    };
+    // closeMenu reads refs, so it stays current without being a dependency.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [menuOpen, touch, typing]);
+
+  const pickTarget = (event: React.SyntheticEvent) => {
+    if (
+      !liveRef.current.coarse ||
+      liveRef.current.typing ||
+      disabledRef.current
+    ) {
+      return null;
+    }
+    const { target } = event;
+    if (!(target instanceof Element)) return null;
+    if (target.closest(".react-select__menu")) return null;
+    if (
+      target.closest(
+        ".react-select__clear-indicator, .react-select__multi-value__remove"
+      )
+    ) {
+      return null;
+    }
+    return target.closest(".react-select__control");
+  };
+
+  const api: IQuietSelectApi = {
+    get coarse() {
+      return liveRef.current.coarse;
+    },
+    get typing() {
+      return liveRef.current.typing;
+    },
+    label: intl.formatMessage({
+      id: "actions.type_to_search",
+      defaultMessage: "Type to search",
+    }),
+    beginTyping: (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      liveRef.current.typing = true;
+      setTyping(true);
+      setMenuOpen(true);
+      const input = anchorRef.current?.querySelector("input");
+      if (input) {
+        input.readOnly = false;
+        input.inputMode = "text";
+        input.focus();
+      }
+    },
+    blockInputFocus: (event) => {
+      ignoreCloseRef.current = true;
+      event.currentTarget.blur();
+    },
+  };
+
+  return {
+    api,
+    picking: touch && !typing,
+    anchorRef,
+    menuIsOpen: touch ? menuOpen : undefined,
+    onMenuOpen: () => setMenuOpen(true),
+    onMenuClose: () => {
+      if (ignoreCloseRef.current) {
+        ignoreCloseRef.current = false;
+        setMenuOpen(true);
+        return;
+      }
+      closeMenu();
+    },
+    onPointerDownCapture: (event: React.PointerEvent) => {
+      if (!pickTarget(event)) return;
+      event.preventDefault();
+      event.stopPropagation();
+      setMenuOpen((open) => !open);
+    },
+    blockControlFocus: (event: React.SyntheticEvent) => {
+      if (!pickTarget(event)) return;
+      event.preventDefault();
+      event.stopPropagation();
+    },
+  };
+}
+
+export function QuietTypeToggle() {
+  const api = useContext(QuietSelectContext);
+  if (!api?.coarse || api.typing) return null;
+  return (
+    <button
+      type="button"
+      className="react-select-type-toggle"
+      onPointerDown={api.beginTyping}
+    >
+      {api.label}
+    </button>
+  );
+}
+
+export function QuietInput<
+  Opt,
+  IsMulti extends boolean,
+  Group extends GroupBase<Opt>
+>(inputProps: InputProps<Opt, IsMulti, Group>) {
+  const api = useContext(QuietSelectContext);
+  const allowType = !api?.coarse || api.typing;
+  const Input = ReactSelectComponents.Input as React.ComponentType<
+    InputProps<Opt, IsMulti, Group> & {
+      readOnly?: boolean;
+      inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
+      onFocus?: React.FocusEventHandler<HTMLInputElement>;
+    }
+  >;
+  return (
+    <Input
+      {...inputProps}
+      readOnly={!allowType}
+      inputMode={allowType ? "text" : "none"}
+      onFocus={(event) => {
+        const typingNow = Boolean(api?.typing);
+        if (api?.coarse && !typingNow) {
+          api.blockInputFocus(event);
+          return;
+        }
+        inputProps.onFocus?.(event);
+      }}
+    />
+  );
+}
+
+export function QuietMenuList<
+  Opt,
+  IsMulti extends boolean,
+  Group extends GroupBase<Opt>
+>(menuProps: MenuListProps<Opt, IsMulti, Group>) {
+  return (
+    <ReactSelectComponents.MenuList {...menuProps}>
+      <QuietTypeToggle />
+      {menuProps.children}
+    </ReactSelectComponents.MenuList>
+  );
+}
+
 const SelectComponent = <T, IsMulti extends boolean>(
   props: ISelectProps<T, IsMulti>
 ) => {
@@ -70,74 +287,7 @@ const SelectComponent = <T, IsMulti extends boolean>(
     showDropdown = true,
     noOptionsMessageText: noOptionsMessage = "None",
   } = props;
-  const intl = useIntl();
-  const coarse = useMediaQuery("(pointer: coarse)");
-  const [typing, setTyping] = useState(false);
-  const anchorRef = useRef<HTMLDivElement>(null);
-  const coarseRef = useRef(coarse);
-  const typingRef = useRef(typing);
-  const setTypingRef = useRef(setTyping);
-  const typeLabelRef = useRef("");
-  coarseRef.current = coarse;
-  typingRef.current = typing;
-  setTypingRef.current = setTyping;
-  typeLabelRef.current = intl.formatMessage({
-    id: "actions.type_to_search",
-    defaultMessage: "Type to search",
-  });
-
-  const touchParts = useMemo(() => {
-    function QuietInput(
-      inputProps: InputProps<Option<T>, IsMulti, GroupBase<Option<T>>> & {
-        innerProps?: React.InputHTMLAttributes<HTMLInputElement>;
-      }
-    ) {
-      const allowType = !coarseRef.current || typingRef.current;
-      const Input = ReactSelectComponents.Input as React.FC<typeof inputProps>;
-      return (
-        <Input
-          {...inputProps}
-          innerProps={{
-            ...inputProps.innerProps,
-            readOnly: !allowType,
-            inputMode: allowType ? "text" : "none",
-          }}
-        />
-      );
-    }
-
-    function QuietMenuList(
-      menuProps: MenuListProps<Option<T>, IsMulti, GroupBase<Option<T>>>
-    ) {
-      return (
-        <ReactSelectComponents.MenuList {...menuProps}>
-          {coarseRef.current && !typingRef.current ? (
-            <button
-              type="button"
-              className="react-select-type-toggle"
-              onPointerDown={(event) => {
-                event.preventDefault();
-                event.stopPropagation();
-                const input = anchorRef.current?.querySelector("input");
-                if (input) {
-                  input.readOnly = false;
-                  input.inputMode = "text";
-                  input.focus();
-                }
-                typingRef.current = true;
-                setTypingRef.current(true);
-              }}
-            >
-              {typeLabelRef.current}
-            </button>
-          ) : null}
-          {menuProps.children}
-        </ReactSelectComponents.MenuList>
-      );
-    }
-
-    return { Input: QuietInput, MenuList: QuietMenuList };
-  }, []);
+  const quiet = useQuietSelect(isDisabled, props.onMenuClose);
 
   const styles: StylesConfig<Option<T>, IsMulti> = {
     option: (base) => ({
@@ -166,16 +316,18 @@ const SelectComponent = <T, IsMulti extends boolean>(
     placeholder: isDisabled ? "" : placeholder,
     components: {
       ...components,
-      ...touchParts,
+      Input: QuietInput,
+      MenuList: QuietMenuList,
       IndicatorSeparator: () => null,
       ...((!showDropdown || isDisabled) && { DropdownIndicator: () => null }),
       ...(isDisabled && { MultiValueRemove: () => null }),
     },
-    onMenuClose: () => {
-      typingRef.current = false;
-      setTyping(false);
-      props.onMenuClose?.();
+    menuIsOpen: quiet.menuIsOpen,
+    onMenuOpen: () => {
+      quiet.onMenuOpen();
+      props.onMenuOpen?.();
     },
+    onMenuClose: quiet.onMenuClose,
   };
 
   const select = creatable ? (
@@ -185,9 +337,18 @@ const SelectComponent = <T, IsMulti extends boolean>(
   );
 
   return (
-    <div className="react-select-anchor" ref={anchorRef}>
-      {select}
-    </div>
+    <QuietSelectContext.Provider value={quiet.api}>
+      <div
+        className={cx("react-select-anchor", quiet.picking && "is-picking")}
+        ref={quiet.anchorRef}
+        onPointerDownCapture={quiet.onPointerDownCapture}
+        onMouseDownCapture={quiet.blockControlFocus}
+        onTouchEndCapture={quiet.blockControlFocus}
+        onClickCapture={quiet.blockControlFocus}
+      >
+        {select}
+      </div>
+    </QuietSelectContext.Provider>
   );
 };
 
