@@ -364,7 +364,7 @@ export const ScenePlayer: React.FC<IScenePlayerProps> = PatchComponent(
       }
 
       if (mobileStage) {
-        setShowScrubber(true);
+        setShowScrubber(false);
         return;
       }
 

@@ -955,15 +955,6 @@ const SceneLoader: React.FC<RouteComponentProps<ISceneParams>> = ({
     setChromeOn(true);
   }, [id]);
 
-  useEffect(() => {
-    const viewing = narrow && stageMode === "view";
-    document.body.classList.toggle("media-stage-view", viewing);
-    document.body.classList.toggle("media-chrome-on", viewing && chromeOn);
-    return () => {
-      document.body.classList.remove("media-stage-view", "media-chrome-on");
-    };
-  }, [narrow, stageMode, chromeOn]);
-
   async function getQueueFilterScenes(filter: ListFilterModel) {
     const query = await queryFindScenes(filter);
     const { scenes, count } = query.data.findScenes;
@@ -1134,11 +1125,6 @@ const SceneLoader: React.FC<RouteComponentProps<ISceneParams>> = ({
     loadScene(sceneID, autoPlayOnSelected, getScenePage(sceneID));
   }
 
-  const hasPrevScene = currentQueueIndex > 0 || queueStart > 1;
-  const hasNextScene =
-    currentQueueIndex !== -1 &&
-    (currentQueueIndex < queueScenes.length - 1 || queueHasMoreScenes);
-
   if (!scene) {
     if (loading) return <LoadingIndicator />;
     if (error) return <ErrorMessage error={error.message} />;
@@ -1171,7 +1157,6 @@ const SceneLoader: React.FC<RouteComponentProps<ISceneParams>> = ({
       <div
         className={cx("scene-player-container", {
           expanded: collapsed,
-          "media-stage-view": narrow && stageMode === "view",
         })}
       >
         <ScenePlayer
@@ -1189,22 +1174,6 @@ const SceneLoader: React.FC<RouteComponentProps<ISceneParams>> = ({
           chromeVisible={chromeOn}
           onChromeChange={setChromeOn}
         />
-        {hasPrevScene && (
-          <Button
-            className="scene-nav-button prev minimal"
-            onClick={() => queuePrevious(true)}
-          >
-            <Icon icon={faChevronLeft} />
-          </Button>
-        )}
-        {hasNextScene && (
-          <Button
-            className="scene-nav-button next minimal"
-            onClick={() => queueNext(true)}
-          >
-            <Icon icon={faChevronRight} />
-          </Button>
-        )}
       </div>
     </div>
   );

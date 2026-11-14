@@ -1371,26 +1371,18 @@ body.media-stage-view:not(.media-chrome-on) .media-quick-edit {
   bottom: 0;
 }
 
-body.media-chrome-on .media-stage-title {
-  opacity: 1;
-  pointer-events: auto;
-  top: $navbar-height;
-}
-
 .media-stage-title {
   align-items: center;
   background: rgba(0, 0, 0, 0.55);
   color: #fff;
   display: flex;
+  flex: 0 0 100%;
   gap: 0.5rem;
-  left: 0;
-  opacity: 0;
-  padding: calc(env(safe-area-inset-top) + 0.4rem) 0.75rem 0.4rem;
-  pointer-events: none;
-  position: fixed;
-  right: 0;
-  top: 0;
-  z-index: 1032;
+  max-width: 100%;
+  order: -1;
+  padding: 0.4rem 0.75rem;
+  position: relative;
+  width: 100%;
 }
 
 .media-stage-title-text {
@@ -1402,10 +1394,6 @@ body.media-chrome-on .media-stage-title {
 }
 
 @media (max-width: 575.98px) and (orientation: portrait) {
-  body.media-chrome-on .media-stage-title {
-    top: 0;
-  }
-
   body.media-stage-view.media-chrome-on .media-quick-edit {
     bottom: $navbar-height;
   }
