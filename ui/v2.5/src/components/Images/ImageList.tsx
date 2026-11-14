@@ -28,6 +28,7 @@ import { ExportDialog } from "../Shared/ExportDialog";
 import { objectTitle } from "src/core/files";
 import { useConfigurationContext } from "src/hooks/Config";
 import { ImageCardGrid } from "./ImageCardGrid";
+import { ImageQueue } from "src/models/imageQueue";
 import { View } from "../List/views";
 import {
   FilteredListToolbar,
@@ -298,6 +299,11 @@ const ImageList: React.FC<IImageListImages> = PatchComponent(
       [showLightbox, setSlideshowRunning]
     );
 
+    const queue = useMemo(
+      () => ImageQueue.fromListFilterModel(filter),
+      [filter]
+    );
+
     function onPreview(index: number, ev: MouseEvent) {
       handleImageOpen(index);
       ev.preventDefault();
@@ -311,6 +317,7 @@ const ImageList: React.FC<IImageListImages> = PatchComponent(
           zoomIndex={filter.zoomIndex}
           onSelectChange={onSelectChange}
           onPreview={onPreview}
+          queue={queue}
         />
       );
     }

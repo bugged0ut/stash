@@ -6,6 +6,7 @@ import {
   useContainerDimensions,
 } from "../Shared/GridCard/GridCard";
 import { PatchComponent } from "src/patch";
+import { ImageQueue } from "src/models/imageQueue";
 
 interface IImageCardGrid {
   images: GQL.SlimImageDataFragment[];
@@ -13,19 +14,22 @@ interface IImageCardGrid {
   zoomIndex: number;
   onSelectChange: (id: string, selected: boolean, shiftKey: boolean) => void;
   onPreview: (index: number, ev: React.MouseEvent<Element, MouseEvent>) => void;
+  queue?: ImageQueue;
 }
 
 const zoomWidths = [280, 340, 480, 640];
 
 export const ImageCardGrid: React.FC<IImageCardGrid> = PatchComponent(
   "ImageCardGrid",
-  ({ images, selectedIds, zoomIndex, onSelectChange, onPreview }) => {
+  ({ images, selectedIds, zoomIndex, onSelectChange, onPreview, queue }) => {
     const [componentRef, { width: containerWidth }] = useContainerDimensions();
     const cardWidth = useCardWidth(containerWidth, zoomIndex, zoomWidths);
 
     const queueParams = React.useMemo(() => {
-      return images.map((img) => `qs=${img.id}`).join("&");
-    }, [images]);
+      const ids = images.map((img) => img.id);
+      if (queue) return queue.makeQueryParameters(undefined, ids);
+      return ids.map((id) => `qs=${id}`).join("&");
+    }, [images, queue]);
 
     return (
       <div className="row justify-content-center" ref={componentRef}>

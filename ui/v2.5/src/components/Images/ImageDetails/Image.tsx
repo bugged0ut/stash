@@ -1,9 +1,21 @@
 import { Tab, Nav, Dropdown, Button } from "react-bootstrap";
-import React, { useEffect, useMemo, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { FormattedMessage, useIntl } from "react-intl";
-import { useHistory, useLocation, RouteComponentProps } from "react-router-dom";
+import {
+  useHistory,
+  useLocation,
+  useParams,
+  RouteComponentProps,
+} from "react-router-dom";
 import { Helmet } from "react-helmet";
 import {
+  queryFindImages,
   useFindImage,
   useImageIncrementO,
   useImageUpdate,
@@ -46,6 +58,8 @@ import { StudioLogo } from "src/components/Shared/StudioLogo";
 import { useLightbox } from "src/hooks/Lightbox/hooks";
 import { useMediaQuery } from "src/utils/screen";
 import { MediaQuickEditSheet } from "src/components/Shared/MediaQuickEditSheet";
+import { ImageQueue } from "src/models/imageQueue";
+import { ZoomableVisual } from "./ZoomableVisual";
 
 interface IProps {
   image: GQL.ImageDataFragment;
@@ -63,34 +77,96 @@ const ImagePage: React.FC<IProps> = ({ image }) => {
   const { configuration } = useConfigurationContext();
   const { showStudioText } = configuration?.ui ?? {};
 
-  const queryParams = useMemo(
-    () => new URLSearchParams(location.search),
+  const { id: routeID } = useParams<IImageParams>();
+  const queue = useMemo(
+    () => ImageQueue.fromQueryParameters(new URLSearchParams(location.search)),
     [location.search]
   );
-  const imageIDs = useMemo(() => queryParams.getAll("qs"), [queryParams]);
-  const currentIndex = useMemo(
-    () => imageIDs.indexOf(image.id),
-    [imageIDs, image.id]
+  const [pageIDs, setPageIDs] = useState<string[]>(() => queue.imageIDs ?? []);
+  const [total, setTotal] = useState<number | null>(
+    queue.query ? null : queue.imageIDs?.length ?? 0
   );
-  const prevImageID = useMemo(
-    () => (currentIndex > 0 ? imageIDs[currentIndex - 1] : null),
-    [imageIDs, currentIndex]
-  );
-  const nextImageID = useMemo(
-    () =>
-      currentIndex !== -1 && currentIndex < imageIDs.length - 1
-        ? imageIDs[currentIndex + 1]
-        : null,
-    [imageIDs, currentIndex]
+  const paging = useRef(false);
+
+  useEffect(() => {
+    if (!queue.query) {
+      setPageIDs(queue.imageIDs ?? []);
+      setTotal(queue.imageIDs?.length ?? 0);
+      return;
+    }
+
+    let cancelled = false;
+    queryFindImages(queue.query)
+      .then((result) => {
+        if (cancelled) return;
+        setPageIDs(result.data.findImages.images.map((i) => i.id));
+        setTotal(result.data.findImages.count);
+      })
+      .catch((e) => {
+        if (!cancelled) Toast.error(e);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [queue, Toast]);
+
+  const index = pageIDs.indexOf(routeID);
+  const pageSize = queue.query?.itemsPerPage ?? pageIDs.length;
+  const page = queue.query?.currentPage ?? 1;
+  const pageFull = !!queue.query && pageSize > 0 && pageIDs.length >= pageSize;
+  const hasAnotherPage =
+    pageFull && (total === null || page * pageSize < total);
+  const canNext = index >= 0 && (index < pageIDs.length - 1 || hasAnotherPage);
+  const canPrev = index > 0 || (!!queue.query && index === 0 && page > 1);
+
+  const go = useCallback(
+    async (direction: 1 | -1) => {
+      if (paging.current) return;
+      const current = pageIDs.indexOf(routeID);
+      if (current === -1) return;
+
+      const neighbor = current + direction;
+      if (neighbor >= 0 && neighbor < pageIDs.length) {
+        history.replace(queue.makeLink(pageIDs[neighbor]));
+        return;
+      }
+
+      if (!queue.query) return;
+      const nextPage = queue.query.currentPage + direction;
+      if (nextPage < 1) return;
+      if (
+        direction > 0 &&
+        (pageIDs.length < queue.query.itemsPerPage ||
+          (total !== null &&
+            queue.query.currentPage * queue.query.itemsPerPage >= total))
+      ) {
+        return;
+      }
+
+      paging.current = true;
+      try {
+        const filter = queue.query.clone();
+        filter.currentPage = nextPage;
+        const result = await queryFindImages(filter);
+        const ids = result.data.findImages.images.map((i) => i.id);
+        if (!ids.length) {
+          setTotal(result.data.findImages.count);
+          return;
+        }
+        setPageIDs(ids);
+        setTotal(result.data.findImages.count);
+        const target = direction > 0 ? ids[0] : ids[ids.length - 1];
+        history.replace(queue.makeLink(target, nextPage, ids));
+      } catch (e) {
+        Toast.error(e);
+      } finally {
+        paging.current = false;
+      }
+    },
+    [history, pageIDs, queue, routeID, total, Toast]
   );
 
-  const navigateToImage = (targetID: string) => {
-    history.replace(`/images/${targetID}${location.search}`);
-  };
-
-  const [touchStart, setTouchStart] = useState<number | null>(null);
-  const [touchEnd, setTouchEnd] = useState<number | null>(null);
-  const swiped = React.useRef(false);
   const narrow = useMediaQuery("(max-width: 1199px)");
   const lightboxImages = React.useMemo(() => [image], [image]);
   const showLightbox = useLightbox({
@@ -98,43 +174,8 @@ const ImagePage: React.FC<IProps> = ({ image }) => {
     showNavigation: false,
   });
 
-  const minSwipeDistance = 50;
-
-  const onTouchStart = (e: React.TouchEvent) => {
-    setTouchEnd(null);
-    setTouchStart(e.targetTouches[0].clientX);
-  };
-
-  const onTouchMove = (e: React.TouchEvent) => {
-    setTouchEnd(e.targetTouches[0].clientX);
-  };
-
-  const onTouchEnd = () => {
-    if (!touchStart || !touchEnd) return;
-    const distance = touchStart - touchEnd;
-    const isLeftSwipe = distance > minSwipeDistance;
-    const isRightSwipe = distance < -minSwipeDistance;
-    if (isLeftSwipe && nextImageID) {
-      swiped.current = true;
-      navigateToImage(nextImageID);
-    } else if (isRightSwipe && prevImageID) {
-      swiped.current = true;
-      navigateToImage(prevImageID);
-    }
-  };
-
   function openLightbox() {
     showLightbox({ initialIndex: 0 });
-  }
-
-  function onImageClick(event: React.MouseEvent) {
-    if (swiped.current) {
-      swiped.current = false;
-      return;
-    }
-    const target = event.target as HTMLElement;
-    if (target.closest(".image-nav-button, .image-open-viewer, video")) return;
-    openLightbox();
   }
 
   const [incrementO] = useImageIncrementO(image.id);
@@ -389,12 +430,12 @@ const ImagePage: React.FC<IProps> = ({ image }) => {
     Mousetrap.bind("o", () => {
       onIncrementClick();
     });
-    if (prevImageID) {
-      Mousetrap.bind("left", () => navigateToImage(prevImageID));
-    }
-    if (nextImageID) {
-      Mousetrap.bind("right", () => navigateToImage(nextImageID));
-    }
+    Mousetrap.bind("left", () => {
+      void go(-1);
+    });
+    Mousetrap.bind("right", () => {
+      void go(1);
+    });
 
     return () => {
       Mousetrap.unbind("a");
@@ -412,10 +453,8 @@ const ImagePage: React.FC<IProps> = ({ image }) => {
   );
 
   const title = imageTitle(image);
-  const ImageView =
-    image.visual_files.length > 0 && isVideo(image.visual_files[0])
-      ? "video"
-      : "img";
+  const videoFile =
+    image.visual_files.length > 0 && isVideo(image.visual_files[0]);
 
   const resolution = useMemo(() => {
     return file?.width && file?.height
@@ -482,22 +521,19 @@ const ImagePage: React.FC<IProps> = ({ image }) => {
         </div>
         {renderTabs()}
       </div>
-      <div
-        className="image-container"
-        onTouchStart={onTouchStart}
-        onTouchMove={onTouchMove}
-        onTouchEnd={onTouchEnd}
-        onClick={onImageClick}
-      >
+      <div className="image-container">
         {image.visual_files.length > 0 && (
-          <ImageView
-            loop={image.visual_files[0].__typename == "VideoFile"}
-            autoPlay={image.visual_files[0].__typename == "VideoFile"}
-            playsInline={image.visual_files[0].__typename == "VideoFile"}
-            controls={image.visual_files[0].__typename == "VideoFile"}
-            className="m-sm-auto no-gutter image-image"
-            alt={title}
+          <ZoomableVisual
             src={image.paths.image ?? ""}
+            alt={title}
+            video={videoFile}
+            onOpen={openLightbox}
+            onNext={() => {
+              void go(1);
+            }}
+            onPrev={() => {
+              void go(-1);
+            }}
           />
         )}
         <Button
@@ -548,18 +584,22 @@ const ImagePage: React.FC<IProps> = ({ image }) => {
             menu={renderOperations()}
           />
         ) : null}
-        {prevImageID && (
+        {canPrev && (
           <Button
             className="image-nav-button prev minimal"
-            onClick={() => navigateToImage(prevImageID)}
+            onClick={() => {
+              void go(-1);
+            }}
           >
             <Icon icon={faChevronLeft} />
           </Button>
         )}
-        {nextImageID && (
+        {canNext && (
           <Button
             className="image-nav-button next minimal"
-            onClick={() => navigateToImage(nextImageID)}
+            onClick={() => {
+              void go(1);
+            }}
           >
             <Icon icon={faChevronRight} />
           </Button>

@@ -172,6 +172,15 @@ $imageTabWidth: 450px;
   }
 }
 
+.image-zoom-frame {
+  align-items: center;
+  display: flex;
+  height: 100%;
+  justify-content: center;
+  overflow: hidden;
+  width: 100%;
+}
+
 @media (min-width: 1200px) {
   .image-container {
     height: calc(100vh - 4rem);
