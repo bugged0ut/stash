@@ -646,9 +646,49 @@ div.react-select__control {
     color: $text-color;
   }
 
+  .react-select__value-container--is-multi {
+    min-width: 0;
+    white-space: normal;
+  }
+
   .react-select__multi-value {
     background-color: $muted-gray;
     color: $text-color;
+    max-width: 100%;
+  }
+}
+
+.react-select-anchor {
+  width: 100%;
+}
+
+.react-select-type-toggle {
+  background: transparent;
+  border: 0;
+  color: $link-color;
+  display: block;
+  padding: 0.35rem 0.75rem;
+  text-align: left;
+  width: 100%;
+}
+
+.tag-select {
+  .react-select__menu-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    padding: 0.5rem;
+  }
+
+  .react-select__option {
+    border-radius: 1rem;
+    width: auto;
+  }
+
+  .react-select__menu-notice,
+  .react-select-type-toggle,
+  .tag-select-create-option {
+    flex: 1 0 100%;
   }
 }
 

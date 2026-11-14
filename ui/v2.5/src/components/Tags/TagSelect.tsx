@@ -132,6 +132,10 @@ const _TagSelect: React.FC<TagSelectProps> = (props) => {
 
     thisOptionProps = {
       ...optionProps,
+      className: cx(
+        optionProps.className,
+        !object.id && "tag-select-create-option"
+      ),
       children: (
         <TagPopover id={object.id} placement={props.hoverPlacement ?? "right"}>
           <span className="react-select-image-option">

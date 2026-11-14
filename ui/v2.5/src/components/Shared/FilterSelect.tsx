@@ -1,5 +1,9 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
+import { useIntl } from "react-intl";
 import {
+  components as ReactSelectComponents,
+  InputProps,
+  MenuListProps,
   OnChangeValue,
   StylesConfig,
   GroupBase,
@@ -15,6 +19,7 @@ import cx from "classnames";
 import { useToast } from "src/hooks/Toast";
 import { useDebounce } from "src/hooks/debounce";
 import { IHasID } from "src/utils/data";
+import { useMediaQuery } from "src/utils/screen";
 
 export type Option<T> = { value: string; object: T };
 
@@ -65,6 +70,74 @@ const SelectComponent = <T, IsMulti extends boolean>(
     showDropdown = true,
     noOptionsMessageText: noOptionsMessage = "None",
   } = props;
+  const intl = useIntl();
+  const coarse = useMediaQuery("(pointer: coarse)");
+  const [typing, setTyping] = useState(false);
+  const anchorRef = useRef<HTMLDivElement>(null);
+  const coarseRef = useRef(coarse);
+  const typingRef = useRef(typing);
+  const setTypingRef = useRef(setTyping);
+  const typeLabelRef = useRef("");
+  coarseRef.current = coarse;
+  typingRef.current = typing;
+  setTypingRef.current = setTyping;
+  typeLabelRef.current = intl.formatMessage({
+    id: "actions.type_to_search",
+    defaultMessage: "Type to search",
+  });
+
+  const touchParts = useMemo(() => {
+    function QuietInput(
+      inputProps: InputProps<Option<T>, IsMulti, GroupBase<Option<T>>> & {
+        innerProps?: React.InputHTMLAttributes<HTMLInputElement>;
+      }
+    ) {
+      const allowType = !coarseRef.current || typingRef.current;
+      const Input = ReactSelectComponents.Input as React.FC<typeof inputProps>;
+      return (
+        <Input
+          {...inputProps}
+          innerProps={{
+            ...inputProps.innerProps,
+            readOnly: !allowType,
+            inputMode: allowType ? "text" : "none",
+          }}
+        />
+      );
+    }
+
+    function QuietMenuList(
+      menuProps: MenuListProps<Option<T>, IsMulti, GroupBase<Option<T>>>
+    ) {
+      return (
+        <ReactSelectComponents.MenuList {...menuProps}>
+          {coarseRef.current && !typingRef.current ? (
+            <button
+              type="button"
+              className="react-select-type-toggle"
+              onPointerDown={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                const input = anchorRef.current?.querySelector("input");
+                if (input) {
+                  input.readOnly = false;
+                  input.inputMode = "text";
+                  input.focus();
+                }
+                typingRef.current = true;
+                setTypingRef.current(true);
+              }}
+            >
+              {typeLabelRef.current}
+            </button>
+          ) : null}
+          {menuProps.children}
+        </ReactSelectComponents.MenuList>
+      );
+    }
+
+    return { Input: QuietInput, MenuList: QuietMenuList };
+  }, []);
 
   const styles: StylesConfig<Option<T>, IsMulti> = {
     option: (base) => ({
@@ -93,16 +166,28 @@ const SelectComponent = <T, IsMulti extends boolean>(
     placeholder: isDisabled ? "" : placeholder,
     components: {
       ...components,
+      ...touchParts,
       IndicatorSeparator: () => null,
       ...((!showDropdown || isDisabled) && { DropdownIndicator: () => null }),
       ...(isDisabled && { MultiValueRemove: () => null }),
     },
+    onMenuClose: () => {
+      typingRef.current = false;
+      setTyping(false);
+      props.onMenuClose?.();
+    },
   };
 
-  return creatable ? (
+  const select = creatable ? (
     <AsyncCreatableSelect {...componentProps} isDisabled={isDisabled} />
   ) : (
     <AsyncSelect {...componentProps} />
+  );
+
+  return (
+    <div className="react-select-anchor" ref={anchorRef}>
+      {select}
+    </div>
   );
 };
 
