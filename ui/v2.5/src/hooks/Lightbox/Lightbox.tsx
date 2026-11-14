@@ -1055,14 +1055,6 @@ export const LightboxComponent: React.FC<IProps> = ({
                 },
               }).catch((e) => Toast.error(e));
             }}
-            studio={currentImage.studio ?? null}
-            onStudioChange={(studioId) => {
-              void updateImage({
-                variables: {
-                  input: { id: currentImage.id!, studio_id: studioId },
-                },
-              }).catch((e) => Toast.error(e));
-            }}
             onExpandedChange={setSheetExpanded}
             extra={
               currentImage.galleries?.length ? (

@@ -567,10 +567,6 @@ const ImagePage: React.FC<IProps> = ({ image }) => {
             onTagsChange={(ids) => {
               void saveQuiet({ tag_ids: ids });
             }}
-            studio={image.studio ?? null}
-            onStudioChange={(studioId) => {
-              void saveQuiet({ studio_id: studioId });
-            }}
             onEditDetails={() => {
               setActiveTabKey("image-edit-panel");
               window.setTimeout(() => {

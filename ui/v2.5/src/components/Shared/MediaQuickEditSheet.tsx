@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Button } from "react-bootstrap";
 import { FormattedMessage, useIntl } from "react-intl";
 import cx from "classnames";
@@ -10,7 +10,6 @@ import {
   PerformerSelect,
 } from "src/components/Performers/PerformerSelect";
 import { Tag, TagSelect } from "src/components/Tags/TagSelect";
-import { Studio, StudioSelect } from "src/components/Studios/StudioSelect";
 
 export interface IMediaPersonRef {
   id: string;
@@ -27,13 +26,6 @@ export interface IMediaTagRef {
   name: string;
 }
 
-export interface IMediaStudioRef {
-  id: string;
-  name: string;
-  aliases?: string[] | null;
-  image_path?: string | null;
-}
-
 interface IProps {
   rating100: number | null | undefined;
   onSetRating: (value: number | null) => void;
@@ -48,8 +40,6 @@ interface IProps {
   onPerformersChange: (ids: string[]) => void;
   tags: IMediaTagRef[];
   onTagsChange: (ids: string[]) => void;
-  studio: IMediaStudioRef | null;
-  onStudioChange: (id: string | null) => void;
   onCreateMarker?: (primaryTagId: string) => Promise<void>;
   onEditDetails?: () => void;
   onShowViewer?: () => void;
@@ -83,14 +73,7 @@ function asTag(tag: IMediaTagRef): Tag {
   };
 }
 
-function asStudio(studio: IMediaStudioRef): Studio {
-  return {
-    id: studio.id,
-    name: studio.name,
-    aliases: studio.aliases ?? [],
-    image_path: studio.image_path ?? "",
-  };
-}
+const SWIPE_DISTANCE = 28;
 
 export const MediaQuickEditSheet: React.FC<IProps> = ({
   rating100,
@@ -106,8 +89,6 @@ export const MediaQuickEditSheet: React.FC<IProps> = ({
   onPerformersChange,
   tags,
   onTagsChange,
-  studio,
-  onStudioChange,
   onCreateMarker,
   onEditDetails,
   onShowViewer,
@@ -121,9 +102,10 @@ export const MediaQuickEditSheet: React.FC<IProps> = ({
   const [expanded, setExpanded] = useState(false);
   const [performerValues, setPerformerValues] = useState<Performer[]>([]);
   const [tagValues, setTagValues] = useState<Tag[]>([]);
-  const [studioValue, setStudioValue] = useState<Studio | null>(null);
   const [markerTag, setMarkerTag] = useState<Tag | undefined>();
   const [markerSaving, setMarkerSaving] = useState(false);
+  const swipeStart = useRef<{ x: number; y: number } | null>(null);
+  const swiped = useRef(false);
 
   useEffect(() => {
     setPerformerValues(performers.map(asPerformer));
@@ -133,16 +115,52 @@ export const MediaQuickEditSheet: React.FC<IProps> = ({
     setTagValues(tags.map(asTag));
   }, [tags]);
 
-  useEffect(() => {
-    setStudioValue(studio ? asStudio(studio) : null);
-  }, [studio]);
+  function setSheetExpanded(next: boolean) {
+    setExpanded(next);
+    onExpandedChange?.(next);
+  }
 
   function toggleExpanded() {
-    setExpanded((current) => {
-      const next = !current;
-      onExpandedChange?.(next);
-      return next;
-    });
+    setSheetExpanded(!expanded);
+  }
+
+  function onPointerDown(event: React.PointerEvent) {
+    event.stopPropagation();
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+    swipeStart.current = { x: event.clientX, y: event.clientY };
+  }
+
+  function onPointerMove(event: React.PointerEvent) {
+    const start = swipeStart.current;
+    if (!start) return;
+    const dx = event.clientX - start.x;
+    const dy = event.clientY - start.y;
+    if (Math.abs(dy) < 8 || Math.abs(dy) < Math.abs(dx)) return;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) return;
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }
+
+  function onPointerUp(event: React.PointerEvent) {
+    const start = swipeStart.current;
+    swipeStart.current = null;
+    if (!start) return;
+    const dx = event.clientX - start.x;
+    const dy = event.clientY - start.y;
+    if (Math.abs(dy) < SWIPE_DISTANCE || Math.abs(dy) < Math.abs(dx)) return;
+
+    const target = event.target as HTMLElement;
+    if (target.closest(".media-quick-edit-body, .dropdown-menu")) return;
+
+    if (dy < 0) setSheetExpanded(true);
+    else setSheetExpanded(false);
+    swiped.current = true;
+  }
+
+  function onClickCapture(event: React.MouseEvent) {
+    if (!swiped.current) return;
+    swiped.current = false;
+    event.preventDefault();
+    event.stopPropagation();
   }
 
   async function createMarker() {
@@ -163,7 +181,13 @@ export const MediaQuickEditSheet: React.FC<IProps> = ({
         "is-expanded": expanded,
       })}
       onClick={(event) => event.stopPropagation()}
-      onPointerDown={(event) => event.stopPropagation()}
+      onClickCapture={onClickCapture}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={() => {
+        swipeStart.current = null;
+      }}
     >
       <button
         type="button"
@@ -174,27 +198,39 @@ export const MediaQuickEditSheet: React.FC<IProps> = ({
         <span className="media-quick-edit-grabber" />
       </button>
       <div className="media-quick-edit-bar">
-        <RatingSystem
-          value={rating100}
-          onSetRating={onSetRating}
-          clickToRate
-          withoutContext
-        />
-        <OCounterButton
-          value={oCounter}
-          onIncrement={onIncrementO}
-          onDecrement={onDecrementO}
-          onReset={onResetO}
-        />
-        <OrganizedButton
-          loading={organizedLoading}
-          organized={organized}
-          onClick={onToggleOrganized}
-        />
+        <div className="media-quick-edit-controls">
+          <RatingSystem
+            value={rating100}
+            onSetRating={onSetRating}
+            clickToRate
+            withoutContext
+          />
+          <OCounterButton
+            value={oCounter}
+            onIncrement={onIncrementO}
+            onDecrement={onDecrementO}
+            onReset={onResetO}
+          />
+          <OrganizedButton
+            loading={organizedLoading}
+            organized={organized}
+            onClick={onToggleOrganized}
+          />
+          {extra}
+        </div>
         {menu ? (
-          <div className="dropup media-quick-edit-menu">{menu}</div>
+          <div className="dropup media-quick-edit-menu">
+            {React.isValidElement(menu)
+              ? React.cloneElement(
+                  menu as React.ReactElement<{
+                    alignRight?: boolean;
+                    drop?: string;
+                  }>,
+                  { alignRight: true, drop: "up" }
+                )
+              : menu}
+          </div>
         ) : null}
-        {extra}
       </div>
       {expanded ? (
         <div className="media-quick-edit-body">
@@ -221,19 +257,6 @@ export const MediaQuickEditSheet: React.FC<IProps> = ({
               onSelect={(items) => {
                 setTagValues(items);
                 onTagsChange(items.map((item) => item.id));
-              }}
-            />
-          </div>
-          <div>
-            <div className="media-quick-edit-label">
-              <FormattedMessage id="studio" />
-            </div>
-            <StudioSelect
-              values={studioValue ? [studioValue] : []}
-              onSelect={(items) => {
-                const next = items.length > 0 ? items[0] : null;
-                setStudioValue(next);
-                onStudioChange(next ? next.id : null);
               }}
             />
           </div>

@@ -747,10 +747,6 @@ const ScenePage: React.FC<IProps> = PatchComponent("ScenePage", (props) => {
           onTagsChange={(ids) => {
             void saveQuiet({ tag_ids: ids });
           }}
-          studio={scene.studio ?? null}
-          onStudioChange={(studioId) => {
-            void saveQuiet({ studio_id: studioId });
-          }}
           onCreateMarker={async (primaryTagId) => {
             try {
               await createMarker({
